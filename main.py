@@ -139,6 +139,9 @@ HTML_TEMPLATE = """
 
         .news-feed { display: flex; flex-direction: column; gap: 14px; }
 
+        /* Wrapped card inside an anchor layout for native wrapper system handling */
+        .card-link { text-decoration: none; color: inherit; display: block; }
+
         .news-card {
             background-color: var(--surface-color); border-radius: 16px;
             padding: 16px; border: 1px solid var(--border-color);
@@ -216,19 +219,22 @@ HTML_TEMPLATE = """
 
         <div class="news-feed" id="newsFeed">
             {% for item in news %}
-            <div class="news-card" data-category="{{ item.category }}" onclick="window.location.href='{{ item.url }}';">
-                <div class="news-content-wrapper">
-                    <div class="source-badge">📰 {{ item.source }}</div>
-                    <h3>{{ item.title }}</h3>
-                    <div class="card-footer">
-                        <span>🏷️ {{ item.label }}</span>
-                        <span class="read-more">Read More ➡️</span>
+            <!-- Native target formats clear wrapper trap constraints -->
+            <a href="{{ item.url }}" target="_blank" class="card-link" rel="noopener noreferrer">
+                <div class="news-card" data-category="{{ item.category }}">
+                    <div class="news-content-wrapper">
+                        <div class="source-badge">📰 {{ item.source }}</div>
+                        <h3>{{ item.title }}</h3>
+                        <div class="card-footer">
+                            <span>🏷️ {{ item.label }}</span>
+                            <span class="read-more">Read More ➡️</span>
+                        </div>
+                    </div>
+                    <div class="news-image-wrapper">
+                        <img src="{{ item.img }}" alt="Topic Image">
                     </div>
                 </div>
-                <div class="news-image-wrapper">
-                    <img src="{{ item.img }}" alt="Topic Image">
-                </div>
-            </div>
+            </a>
             {% endfor %}
         </div>
     </main>
@@ -278,10 +284,11 @@ HTML_TEMPLATE = """
             document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
             element.classList.add('active');
 
-            const cards = document.querySelectorAll('.news-card');
+            const cards = document.querySelectorAll('.card-link');
             cards.forEach(card => {
-                if (category === 'all' || card.getAttribute('data-category') === category) {
-                    card.style.display = 'flex';
+                const internalCard = card.querySelector('.news-card');
+                if (category === 'all' || internalCard.getAttribute('data-category') === category) {
+                    card.style.display = 'block';
                 } else {
                     card.style.display = 'none';
                 }
@@ -345,7 +352,6 @@ def home():
         {"category": "tech", "title": "Parsing data for regional technology sectors...", "source": "System", "label": "Tech & Biz", "img": SVG_TECH, "url": "#"},
         {"category": "sports", "title": "Fetching updated match lists and team schedules...", "source": "System", "label": "Sports", "img": SVG_SPORTS, "url": "#"}
     ]
-    
     response = make_response(render_template_string(HTML_TEMPLATE, news=display_news))
     response.headers['X-Frame-Options'] = 'ALLOWALL'
     response.headers['Access-Control-Allow-Origin'] = '*'
