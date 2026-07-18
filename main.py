@@ -8,11 +8,9 @@ app = Flask(__name__)
 def fetch_premium_news(query, cat_slug, cat_name):
     articles = []
     
-    # URL encode queries properly to prevent network drops
     encoded_query = urllib.parse.quote(query)
     url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en&gl=SA&ceid=SA:en"
     
-    # Premium Unsplash placeholder images
     placeholders = {
         "all": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80",
         "cars": "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=400&q=80",
@@ -21,7 +19,6 @@ def fetch_premium_news(query, cat_slug, cat_name):
     }
     
     try:
-        # Desktop browser headers to bypass scraping blocks
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
@@ -50,7 +47,6 @@ def fetch_premium_news(query, cat_slug, cat_name):
                 title = parts[0].strip()
                 source = parts[1].strip()
 
-            # Extract source favicon or use high-res placeholder fallback
             img_url = f"https://www.google.com/s2/favicons?sz=128&domain={link}"
             if not link or "google.com" in link:
                 img_url = placeholders.get(cat_slug, placeholders["all"])
@@ -59,28 +55,28 @@ def fetch_premium_news(query, cat_slug, cat_name):
                 "category": cat_slug,
                 "title": title,
                 "source": source,
-                "time": cat_name,
+                "label": cat_name,
                 "url": link,
                 "img": img_url
             })
     except Exception as e:
         print(f"Error fetching {query}: {e}")
         
-    # Bulletproof English fallbacks so your screen is never empty
+    # Standardized key names down here to prevent template rendering crashes
     if not articles:
         if cat_slug == "cars":
             articles = [
-                {"category": "cars", "title": "Ford Recalls 288k Explorer Models Globally: Impact on Regional Markets", "source": "Saudi Auto", "time": "Automotive", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]},
-                {"category": "cars", "title": "Lincoln Project 2029: Luxury Off-Roader Aims to Challenge Defender and Lexus GX", "source": "Saudi Auto", "time": "Automotive", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]}
+                {"category": "cars", "title": "Ford Recalls 288k Explorer Models Globally: Impact on Regional Markets", "source": "Saudi Auto", "label": "Automotive", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]},
+                {"category": "cars", "title": "Lincoln Project 2029: Luxury Off-Roader Aims to Challenge Defender and Lexus GX", "source": "Saudi Auto", "label": "Automotive", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]}
             ]
         elif cat_slug == "sports":
             articles = [
-                {"category": "sports", "title": "Gulf Clubs Accelerate Major Signings in Summer Transfer Window", "source": "FilMarma", "time": "Sports", "url": "https://www.kooora.com/", "img": placeholders["sports"]},
-                {"category": "sports", "title": "Faisal Al-Qabbani Leads Day One of Hill Climb Championship Round 2", "source": "Sport News", "time": "Sports", "url": "https://www.kooora.com/", "img": placeholders["sports"]}
+                {"category": "sports", "title": "Gulf Clubs Accelerate Major Signings in Summer Transfer Window", "source": "FilMarma", "label": "Sports", "url": "https://www.kooora.com/", "img": placeholders["sports"]},
+                {"category": "sports", "title": "Faisal Al-Qabbani Leads Day One of Hill Climb Championship Round 2", "source": "Sport News", "label": "Sports", "url": "https://www.kooora.com/", "img": placeholders["sports"]}
             ]
         else:
             articles = [
-                {"category": cat_slug, "title": f"Updating live insights for the {cat_name} sector across the Gulf regions.", "source": "Gulf News Radar", "time": cat_name, "url": "https://news.google.com", "img": placeholders.get(cat_slug, placeholders["all"])}
+                {"category": cat_slug, "title": f"Updating live insights for the {cat_name} sector across the Gulf regions.", "source": "Gulf News Radar", "label": cat_name, "url": "https://news.google.com", "img": placeholders.get(cat_slug, placeholders["all"])}
             ]
             
     return articles
@@ -291,12 +287,12 @@ HTML_TEMPLATE = """
                     <div class="source-badge">📰 {{ item.source }}</div>
                     <h3>{{ item.title }}</h3>
                     <div class="card-footer">
-                        <span>🏷️ {{ item.time }}</span>
+                        <span>🏷️ {{ item.label }}</span>
                         <span class="read-more">Read More ➡️</span>
                     </div>
                 </div>
                 <div class="news-image-wrapper">
-                    <img src="{{ item.img }}" alt="News Thumbnail" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=150&q=80';">
+                    <img src="{{ item.img }}" alt="News" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=150&q=80';">
                 </div>
             </div>
             {% endfor %}
@@ -366,11 +362,10 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def home():
-    # Route clean regional search targets matching english metrics
-    breaking_news = fetch_premium_news("Saudi Arabia news", "all", "General")
-    cars_news = fetch_premium_news("Saudi automotive industry cars", "cars", "Automotive")
-    tech_news = fetch_premium_news("Gulf technology business venture", "tech", "Tech & Biz")
-    sports_news = fetch_premium_news("Saudi Pro League football", "sports", "Sports")
+    breaking_news = fetch_premium_news("Saudi Arabia", "all", "General")
+    cars_news = fetch_premium_news("Saudi automotive industry", "cars", "Automotive")
+    tech_news = fetch_premium_news("Gulf tech economy", "tech", "Tech & Biz")
+    sports_news = fetch_premium_news("Saudi Pro League", "sports", "Sports")
     
     all_news = breaking_news + cars_news + tech_news + sports_news
     return render_template_string(HTML_TEMPLATE, news=all_news)
