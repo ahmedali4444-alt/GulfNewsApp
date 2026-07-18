@@ -3,28 +3,100 @@ import os
 
 app = Flask(__name__)
 
-# Pre-packaged premium news data delivered instantly to prevent app wrapper timeouts
+# Fast-loading news with optimized high-res imagery attached directly
 def get_optimized_news():
     return [
         # General News
-        {"category": "all", "title": "Saudi Arabia Accelerates Massive Infrastructure and Smart City Projects", "source": "Gulf News", "label": "General"},
-        {"category": "all", "title": "Digital Transformation Market Expected to See Historic Growth Across the Region", "source": "Riyadh Hub", "label": "General"},
-        {"category": "all", "title": "New Green Initiatives Launched to Expand Sustainable Urban Spaces", "source": "Arabia Vision", "label": "General"},
+        {
+            "category": "all", 
+            "title": "Saudi Arabia Accelerates Massive Infrastructure and Smart City Projects", 
+            "source": "Gulf News", 
+            "label": "General",
+            "img": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=150&q=80"
+        },
+        {
+            "category": "all", 
+            "title": "Digital Transformation Market Expected to See Historic Growth Across the Region", 
+            "source": "Riyadh Hub", 
+            "label": "General",
+            "img": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=150&q=80"
+        },
+        {
+            "category": "all", 
+            "title": "New Green Initiatives Launched to Expand Sustainable Urban Spaces", 
+            "source": "Arabia Vision", 
+            "label": "General",
+            "img": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=150&q=80"
+        },
         
         # Automotive News
-        {"category": "cars", "title": "Ford Recalls 288k Explorer Models Globally: Impact on Regional Markets", "source": "Saudi Auto", "label": "Automotive"},
-        {"category": "cars", "title": "Lincoln Project 2029: Luxury Off-Roader Aims to Challenge Defender and Lexus GX", "source": "Saudi Auto", "label": "Automotive"},
-        {"category": "cars", "title": "Electric Vehicle Charging Network Expands Across Major Eastern Province Highways", "source": "Auto Review", "label": "Automotive"},
+        {
+            "category": "cars", 
+            "title": "Ford Recalls 288k Explorer Models Globally: Impact on Regional Markets", 
+            "source": "Saudi Auto", 
+            "label": "Automotive",
+            "img": "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=150&q=80"
+        },
+        {
+            "category": "cars", 
+            "title": "Lincoln Project 2029: Luxury Off-Roader Aims to Challenge Defender and Lexus GX", 
+            "source": "Saudi Auto", 
+            "label": "Automotive",
+            "img": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=150&q=80"
+        },
+        {
+            "category": "cars", 
+            "title": "Electric Vehicle Charging Network Expands Across Major Eastern Province Highways", 
+            "source": "Auto Review", 
+            "label": "Automotive",
+            "img": "https://images.unsplash.com/photo-1563720223185-11003d516935?w=150&q=80"
+        },
         
         # Tech & Business
-        {"category": "tech", "title": "Gulf Tech Hubs Announce Massive Venture Capital Funding for Local AI Startups", "source": "Tech Economy", "label": "Tech & Biz"},
-        {"category": "tech", "title": "Cloud Computing Infrastructure Demand Surges Ahead of Quarter Three App rollouts", "source": "Byte Insights", "label": "Tech & Biz"},
-        {"category": "tech", "title": "E-Commerce Logistics Platforms Optimize Delivery Networks in Jubail and Khobar", "source": "Logistics Daily", "label": "Tech & Biz"},
+        {
+            "category": "tech", 
+            "title": "Gulf Tech Hubs Announce Massive Venture Capital Funding for Local AI Startups", 
+            "source": "Tech Economy", 
+            "label": "Tech & Biz",
+            "img": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=150&q=80"
+        },
+        {
+            "category": "tech", 
+            "title": "Cloud Computing Infrastructure Demand Surges Ahead of Quarter Three App rollouts", 
+            "source": "Byte Insights", 
+            "label": "Tech & Biz",
+            "img": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=150&q=80"
+        },
+        {
+            "category": "tech", 
+            "title": "E-Commerce Logistics Platforms Optimize Delivery Networks in Jubail and Khobar", 
+            "source": "Logistics Daily", 
+            "label": "Tech & Biz",
+            "img": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=150&q=80"
+        },
         
         # Sports
-        {"category": "sports", "title": "Gulf Clubs Accelerate Major Signings in Summer Transfer Window", "source": "FilMarma", "label": "Sports"},
-        {"category": "sports", "title": "Faisal Al-Qabbani Leads Day One of Hill Climb Championship Round 2", "source": "Sport News", "label": "Sports"},
-        {"category": "sports", "title": "Regional Stadiums Upgrade Facilities to Prepare for Upcoming Championship Season", "source": "Stadium Feed", "label": "Sports"}
+        {
+            "category": "sports", 
+            "title": "Gulf Clubs Accelerate Major Signings in Summer Transfer Window", 
+            "source": "FilMarma", 
+            "label": "Sports",
+            "img": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=150&q=80"
+        },
+        {
+            "category": "sports", 
+            "title": "Faisal Al-Qabbani Leads Day One of Hill Climb Championship Round 2", 
+            "source": "Sport News", 
+            "label": "Sports",
+            "img": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=150&q=80"
+        },
+        {
+            "category": "sports", 
+            "title": "Regional Stadiums Upgrade Facilities to Prepare for Upcoming Championship Season", 
+            "source": "Stadium Feed", 
+            "label": "Sports",
+            "img": "https://images.unsplash.com/photo-1521533886411-e77515283b3f?w=150&q=80"
+        }
     ]
 
 HTML_TEMPLATE = """
@@ -120,8 +192,31 @@ HTML_TEMPLATE = """
             box-shadow: 0 6px 18px rgba(0,0,0,0.12);
             cursor: pointer;
             display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .news-content-wrapper {
+            flex-grow: 1;
+            display: flex;
             flex-direction: column;
             gap: 8px;
+        }
+
+        .news-image-wrapper {
+            width: 85px;
+            height: 85px;
+            flex-shrink: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .news-image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .source-badge {
@@ -191,12 +286,22 @@ HTML_TEMPLATE = """
         <div class="news-feed" id="newsFeed">
             {% for item in news %}
             <div class="news-card" data-category="{{ item.category }}">
-                <div class="source-badge">📰 {{ item.source }}</div>
-                <h3>{{ item.title }}</h3>
-                <div class="card-footer">
-                    <span>🏷️ {{ item.label }}</span>
-                    <span class="read-more">Read More ➡️</span>
+                
+                <!-- Left Side text layout -->
+                <div class="news-content-wrapper">
+                    <div class="source-badge">📰 {{ item.source }}</div>
+                    <h3>{{ item.title }}</h3>
+                    <div class="card-footer">
+                        <span>🏷️ {{ item.label }}</span>
+                        <span class="read-more">Read More ➡️</span>
+                    </div>
                 </div>
+
+                <!-- Right Side image layout -->
+                <div class="news-image-wrapper">
+                    <img src="{{ item.img }}" alt="News">
+                </div>
+
             </div>
             {% endfor %}
         </div>
@@ -267,7 +372,6 @@ def home():
     all_news = get_optimized_news()
     response = make_response(render_template_string(HTML_TEMPLATE, news=all_news))
     
-    # Ultra-loose cross-origin and iframe bypass rules for Android WebView wrappers
     response.headers['X-Frame-Options'] = 'ALLOWALL'
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
