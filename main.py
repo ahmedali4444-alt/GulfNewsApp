@@ -370,5 +370,10 @@ def home():
     all_news = breaking_news + cars_news + tech_news + sports_news
     return render_template_string(HTML_TEMPLATE, news=all_news)
 
+import os
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Automatically use Render's assigned port, or default to 5000 locally
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
+
