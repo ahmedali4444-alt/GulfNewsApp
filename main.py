@@ -1,13 +1,13 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, make_response
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
+import os
 
 app = Flask(__name__)
 
 def fetch_premium_news(query, cat_slug, cat_name):
     articles = []
-    
     encoded_query = urllib.parse.quote(query)
     url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en&gl=SA&ceid=SA:en"
     
@@ -62,7 +62,6 @@ def fetch_premium_news(query, cat_slug, cat_name):
     except Exception as e:
         print(f"Error fetching {query}: {e}")
         
-    # Standardized key names down here to prevent template rendering crashes
     if not articles:
         if cat_slug == "cars":
             articles = [
@@ -366,14 +365,14 @@ def home():
     cars_news = fetch_premium_news("Saudi automotive industry", "cars", "Automotive")
     tech_news = fetch_premium_news("Gulf tech economy", "tech", "Tech & Biz")
     sports_news = fetch_premium_news("Saudi Pro League", "sports", "Sports")
-    
     all_news = breaking_news + cars_news + tech_news + sports_news
-    return render_template_string(HTML_TEMPLATE, news=all_news)
-
-import os
+    
+    # Force frame clearance policies for webview mobile environments
+    response = make_response(render_template_string(HTML_TEMPLATE, news=all_news))
+    response.headers['X-Frame-Options'] = 'ALLOWALL'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 if __name__ == '__main__':
-    # Automatically use Render's assigned port, or default to 5000 locally
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
