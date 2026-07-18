@@ -8,13 +8,11 @@ import os
 
 app = Flask(__name__)
 
-# Inline vector SVGs to maintain maximum rendering performance and safety on Android
 SVG_GENERAL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231e293b'/><path d='M20 80V40h15v40H20zm20 0V20h15v40H40zm20 0V50h15v30H60zm20 0V35h10v45H80z' fill='%2338bdf8' opacity='0.7'/><line x1='10' y1='80' x2='90' y2='80' stroke='%2394a3b8' stroke-width='2'/></svg>"
 SVG_AUTO = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231e293b'/><path d='M15 55l10-15h50l10 15h5v15H10V55h5zm15 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm40 0a7 7 0 1 0 0-14 7 7 0 0 0 0 14z' fill='%2338bdf8' opacity='0.8'/></svg>"
 SVG_TECH = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231e293b'/><rect x='25' y='25' width='50' height='40' rx='3' fill='none' stroke='%2338bdf8' stroke-width='4'/><path d='M20 75h60v4H20zM45 65h10v10H45z' fill='%2338bdf8'/><circle cx='50' cy='45' r='5' fill='%2338bdf8' opacity='0.5'/></svg>"
 SVG_SPORTS = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231e293b'/><circle cx='50' cy='50' r='25' fill='none' stroke='%2338bdf8' stroke-width='3'/><path d='M32 32l10 10zm36 0L58 42zm0 36L58 58zm-36 0l10-10z' stroke='%2338bdf8' stroke-width='3'/><circle cx='50' cy='50' r='6' fill='%2338bdf8'/></svg>"
 
-# Global cache to keep app delivery instantaneous
 NEWS_CACHE = []
 
 def scrape_rss_feed(query, category_slug, category_label, svg_icon):
@@ -22,37 +20,26 @@ def scrape_rss_feed(query, category_slug, category_label, svg_icon):
     try:
         encoded_query = urllib.parse.quote(query)
         url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en&gl=SA&ceid=SA:en"
-        
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         req = urllib.request.Request(url, headers=headers)
-        
         with urllib.request.urlopen(req, timeout=8) as response:
             xml_data = response.read()
-            
         root = ET.fromstring(xml_data)
         items = root.findall('./channel/item')
-        
-        for item in items[:6]:  # Keep the top 6 freshest items per category
+        for item in items[:6]:
             title_text = item.find('title').text if item.find('title') is not None else ""
             link_text = item.find('link').text if item.find('link') is not None else "https://news.google.com"
-            
             if not title_text:
                 continue
-                
             source_name = "Regional Feed"
             clean_title = title_text
             if " - " in title_text:
                 parts = title_text.rsplit(" - ", 1)
                 clean_title = parts[0].strip()
                 source_name = parts[1].strip()
-                
             articles.append({
-                "category": category_slug,
-                "title": clean_title,
-                "source": source_name,
-                "label": category_label,
-                "img": svg_icon,
-                "url": link_text
+                "category": category_slug, "title": clean_title, "source": source_name,
+                "label": category_label, "img": svg_icon, "url": link_text
             })
     except Exception as e:
         print(f"Error scraping {query}: {e}")
@@ -61,26 +48,15 @@ def scrape_rss_feed(query, category_slug, category_label, svg_icon):
 def update_news_cache_worker():
     global NEWS_CACHE
     while True:
-        print("Starting background news synchronization...")
-        
-        # Pull live feeds cleanly using geo-focused keywords
         general = scrape_rss_feed("Saudi Arabia infrastructure economy", "all", "General", SVG_GENERAL)
         auto = scrape_rss_feed("Saudi automotive electric vehicles", "cars", "Automotive", SVG_AUTO)
         tech = scrape_rss_feed("Gulf tech startups business", "tech", "Tech & Biz", SVG_TECH)
         sports = scrape_rss_feed("Saudi Pro League football", "sports", "Sports", SVG_SPORTS)
-        
         combined_news = general + auto + tech + sports
-        
         if combined_news:
             NEWS_CACHE = combined_news
-            print("News synchronization completed successfully.")
-        else:
-            print("Sync returned empty fields. Retaining older cached entries.")
-            
-        # Sleep for 1 hour (3600 seconds) before quietly checking for updates again
         time.sleep(3600)
 
-# Trigger the background worker thread immediately upon server ignition
 thread = threading.Thread(target=update_news_cache_worker, daemon=True)
 thread.start()
 
@@ -103,6 +79,16 @@ HTML_TEMPLATE = """
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --border-color: #2e2e38;
+            --card-title-size: 1.02rem;
+        }
+
+        body.light-theme {
+            --bg-color: #f1f5f9;
+            --surface-color: #ffffff;
+            --primary-color: #0284c7;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
         }
 
         * {
@@ -117,11 +103,12 @@ HTML_TEMPLATE = """
             color: var(--text-main);
             padding-top: 75px; padding-bottom: 90px;
             overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .top-header {
             position: fixed; top: 0; left: 0; right: 0; height: 65px;
-            background-color: #1c1c22; display: flex; align-items: center;
+            background-color: var(--surface-color); display: flex; align-items: center;
             justify-content: space-between; padding: 0 20px;
             border-bottom: 1px solid var(--border-color); z-index: 1000;
         }
@@ -144,7 +131,7 @@ HTML_TEMPLATE = """
         }
 
         .chip.active {
-            background-color: var(--primary-color); color: #0f0f13; border-color: var(--primary-color);
+            background-color: var(--primary-color); color: var(--surface-color); border-color: var(--primary-color);
         }
 
         .screen { display: none; padding: 0 20px; }
@@ -155,24 +142,21 @@ HTML_TEMPLATE = """
         .news-card {
             background-color: var(--surface-color); border-radius: 16px;
             padding: 16px; border: 1px solid var(--border-color);
-            box-shadow: 0 6px 18px rgba(0,0,0,0.12); cursor: pointer;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.05); cursor: pointer;
             display: flex; gap: 15px; align-items: flex-start;
-            transition: background-color 0.2s;
         }
-        .news-card:active { background-color: #24242e; }
 
         .news-content-wrapper { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
-
         .news-image-wrapper { width: 80px; height: 80px; flex-shrink: 0; border-radius: 12px; overflow: hidden; }
         .news-image-wrapper img { width: 100%; height: 100%; object-fit: fill; }
 
         .source-badge {
-            align-self: flex-start; background-color: rgba(56, 189, 248, 0.08);
+            align-self: flex-start; background-color: rgba(56, 189, 248, 0.1);
             color: var(--primary-color); padding: 2px 8px; border-radius: 6px;
             font-size: 0.72rem; font-weight: 700;
         }
 
-        .news-card h3 { font-size: 1.02rem; line-height: 1.45; color: var(--text-main); font-weight: 700; }
+        .news-card h3 { font-size: var(--card-title-size); line-height: 1.45; color: var(--text-main); font-weight: 700; }
 
         .card-footer {
             display: flex; justify-content: space-between; align-items: center;
@@ -182,20 +166,35 @@ HTML_TEMPLATE = """
 
         .read-more { color: var(--primary-color); font-weight: 700; font-size: 0.8rem; }
 
+        .setting-panel {
+            background-color: var(--surface-color); border-radius: 16px;
+            padding: 20px; border: 1px solid var(--border-color);
+            margin-bottom: 15px; display: flex; flex-direction: column; gap: 15px;
+        }
+
+        .setting-row { display: flex; justify-content: space-between; align-items: center; }
+        .setting-label { font-weight: 600; font-size: 1rem; }
+        
+        .btn-toggle {
+            background-color: var(--border-color); border: none; color: var(--text-main);
+            padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;
+        }
+        .btn-toggle.active { background-color: var(--primary-color); color: #fff; }
+
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; height: 75px;
-            background-color: #141418; border-top: 1px solid var(--border-color);
+            background-color: var(--surface-color); border-top: 1px solid var(--border-color);
             display: flex; justify-content: space-around; align-items: center; z-index: 1000;
         }
 
         .nav-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             color: var(--text-muted); background: none; border: none; font-size: 0.8rem;
-            font-weight: 700; width: 33%; gap: 5px;
+            font-weight: 700; width: 33%; gap: 5px; cursor: pointer;
         }
         .nav-item.active { color: var(--primary-color); }
         
-        .placeholder-view { text-align: center; padding: 60px 20px; }
+        .placeholder-view { text-align: center; padding: 40px 20px; }
         .placeholder-view h2 { color: var(--text-main); margin-bottom: 12px; }
     </style>
 </head>
@@ -242,9 +241,23 @@ HTML_TEMPLATE = """
     </section>
 
     <section id="settingsScreen" class="screen">
-        <div class="placeholder-view">
-            <h2>⚙️ System Settings</h2>
-            <p style="color: var(--text-muted); margin-top: 8px;">Configure reading display metrics, background synchronization, and push configurations.</p>
+        <div style="padding-top: 15px;">
+            <div class="setting-panel">
+                <div class="setting-row">
+                    <span class="setting-label">🌓 Light Theme</span>
+                    <button id="themeToggle" class="btn-toggle" onclick="toggleTheme()">Off</button>
+                </div>
+            </div>
+            
+            <div class="setting-panel">
+                <div class="setting-row">
+                    <span class="setting-label">🔎 Text Scaling</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="sizeNormal" class="btn-toggle active" onclick="setTextSize('normal')">Normal</button>
+                        <button id="sizeLarge" class="btn-toggle" onclick="setTextSize('large')">Large</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -289,6 +302,36 @@ HTML_TEMPLATE = """
         }
 
         function goToHome() { switchTab('home'); }
+
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.getElementById('themeToggle');
+            if (body.classList.contains('light-theme')) {
+                body.classList.remove('light-theme');
+                btn.innerText = "Off";
+                btn.classList.remove('active');
+            } else {
+                body.classList.add('light-theme');
+                btn.innerText = "On";
+                btn.classList.add('active');
+            }
+        }
+
+        function setTextSize(size) {
+            const root = document.documentElement;
+            const btnNormal = document.getElementById('sizeNormal');
+            const btnLarge = document.getElementById('sizeLarge');
+            
+            if (size === 'large') {
+                root.style.setProperty('--card-title-size', '1.25rem');
+                btnLarge.classList.add('active');
+                btnNormal.classList.remove('active');
+            } else {
+                root.style.setProperty('--card-title-size', '1.02rem');
+                btnNormal.classList.add('active');
+                btnLarge.classList.remove('active');
+            }
+        }
     </script>
 </body>
 </html>
@@ -296,7 +339,6 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def home():
-    # Instantly read from memory cache. Fall back to placeholder array if cache is filling up
     display_news = NEWS_CACHE if NEWS_CACHE else [
         {"category": "all", "title": "Synchronizing latest news streams. Pull down to refresh...", "source": "System", "label": "General", "img": SVG_GENERAL, "url": "#"},
         {"category": "cars", "title": "Updating live automotive insights from local markets...", "source": "System", "label": "Automotive", "img": SVG_AUTO, "url": "#"},
