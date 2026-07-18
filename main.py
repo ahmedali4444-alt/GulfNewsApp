@@ -8,11 +8,11 @@ app = Flask(__name__)
 def fetch_premium_news(query, cat_slug, cat_name):
     articles = []
     
-    # URL encode the Arabic queries properly to prevent network drops
+    # URL encode queries properly to prevent network drops
     encoded_query = urllib.parse.quote(query)
-    url = f"https://news.google.com/rss/search?q={encoded_query}&hl=ar&gl=SA&ceid=SA:ar"
+    url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en&gl=SA&ceid=SA:en"
     
-    # Balanced high-res placeholder images
+    # Premium Unsplash placeholder images
     placeholders = {
         "all": "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400&q=80",
         "cars": "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=400&q=80",
@@ -21,7 +21,7 @@ def fetch_premium_news(query, cat_slug, cat_name):
     }
     
     try:
-        # Full desktop-grade browser headers to prevent getting blocked
+        # Desktop browser headers to bypass scraping blocks
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
@@ -43,13 +43,14 @@ def fetch_premium_news(query, cat_slug, cat_name):
             if not title_full:
                 continue
                 
-            source = "أخبار الخليج"
+            source = "Gulf News"
             title = title_full
             if " - " in title_full:
                 parts = title_full.rsplit(" - ", 1)
                 title = parts[0].strip()
                 source = parts[1].strip()
 
+            # Extract source favicon or use high-res placeholder fallback
             img_url = f"https://www.google.com/s2/favicons?sz=128&domain={link}"
             if not link or "google.com" in link:
                 img_url = placeholders.get(cat_slug, placeholders["all"])
@@ -65,35 +66,35 @@ def fetch_premium_news(query, cat_slug, cat_name):
     except Exception as e:
         print(f"Error fetching {query}: {e}")
         
-    # hardcoded professional fallback safety nets so your screen is NEVER blank
+    # Bulletproof English fallbacks so your screen is never empty
     if not articles:
         if cat_slug == "cars":
             articles = [
-                {"category": "cars", "title": "شركة فورد تستدعي 288 ألف إكسبلورر في أمريكا.. ماذا عن المملكة؟", "source": "سعودي أوتو", "time": "سيارات", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]},
-                {"category": "cars", "title": "لينكولن فاخرة للطرق الوعرة في 2029 تحدياً لديفندر ومرسيدس G ولكزس GX", "source": "سعودي أوتو", "time": "سيارات", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]}
+                {"category": "cars", "title": "Ford Recalls 288k Explorer Models Globally: Impact on Regional Markets", "source": "Saudi Auto", "time": "Automotive", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]},
+                {"category": "cars", "title": "Lincoln Project 2029: Luxury Off-Roader Aims to Challenge Defender and Lexus GX", "source": "Saudi Auto", "time": "Automotive", "url": "https://saudiauto.com.sa/", "img": placeholders["cars"]}
             ]
         elif cat_slug == "sports":
             articles = [
-                {"category": "sports", "title": "متابعة صفقات الأندية الخليجية في سوق الانتقالات الصيفي", "source": "في المرمى", "time": "رياضة", "url": "https://www.kooora.com/", "img": placeholders["sports"]},
-                {"category": "sports", "title": "فيصل القباني يتصدر اليوم الأول من الجولة 2 لبطولة صعود الهضبة", "source": "صحيفة سبورت", "time": "رياضة", "url": "https://www.kooora.com/", "img": placeholders["sports"]}
+                {"category": "sports", "title": "Gulf Clubs Accelerate Major Signings in Summer Transfer Window", "source": "FilMarma", "time": "Sports", "url": "https://www.kooora.com/", "img": placeholders["sports"]},
+                {"category": "sports", "title": "Faisal Al-Qabbani Leads Day One of Hill Climb Championship Round 2", "source": "Sport News", "time": "Sports", "url": "https://www.kooora.com/", "img": placeholders["sports"]}
             ]
         else:
             articles = [
-                {"category": cat_slug, "title": f"جاري تحديث آخر مستجدات قطاع {cat_name} في الخليج", "source": "رادار الخليج", "time": cat_name, "url": "https://news.google.com", "img": placeholders.get(cat_slug, placeholders["all"])}
+                {"category": cat_slug, "title": f"Updating live insights for the {cat_name} sector across the Gulf regions.", "source": "Gulf News Radar", "time": cat_name, "url": "https://news.google.com", "img": placeholders.get(cat_slug, placeholders["all"])}
             ]
             
     return articles
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>رادار أخبار الخليج</title>
+    <title>GNews Radar</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -109,7 +110,7 @@ HTML_TEMPLATE = """
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Cairo', sans-serif;
+            font-family: 'Inter', sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -135,7 +136,7 @@ HTML_TEMPLATE = """
             z-index: 1000;
         }
 
-        .nav-btn { background: none; border: none; color: var(--text-main); font-size: 1.3rem; cursor: pointer; visibility: hidden; }
+        .nav-btn { background: none; border: none; color: var(--text-main); font-size: 1.1rem; cursor: pointer; visibility: hidden; }
         .lang-btn { background: none; border: none; color: var(--text-main); font-size: 1.3rem; cursor: pointer; }
         .app-title { font-size: 1.25rem; font-weight: 800; color: var(--text-main); }
 
@@ -153,7 +154,7 @@ HTML_TEMPLATE = """
             color: var(--text-muted);
             padding: 8px 22px;
             border-radius: 25px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 700;
             border: 1px solid var(--border-color);
             cursor: pointer;
@@ -270,17 +271,17 @@ HTML_TEMPLATE = """
 <body>
 
     <header class="top-header">
-        <button class="nav-btn" id="backBtn" onclick="goToHome()">⬅️</button>
-        <div class="app-title" id="mainHeaderTitle">رادار أخبار الخليج</div>
-        <button class="lang-btn">🔔</button>
+        <button class="nav-btn" id="backBtn" onclick="goToHome()">⬅️ Back</button>
+        <div class="app-title" id="mainHeaderTitle">GNews Radar</div>
+        <button class="lang-btn">ℹ️</button>
     </header>
 
     <main id="homeScreen" class="screen active">
         <div class="category-container">
-            <div class="chip active" onclick="filterCategory('all', this)">أهم الأخبار</div>
-            <div class="chip" onclick="filterCategory('cars', this)">سيارات</div>
-            <div class="chip" onclick="filterCategory('tech', this)">تقنية وأعمال</div>
-            <div class="chip" onclick="filterCategory('sports', this)">رياضة</div>
+            <div class="chip active" onclick="filterCategory('all', this)">Top News</div>
+            <div class="chip" onclick="filterCategory('cars', this)">Automotive</div>
+            <div class="chip" onclick="filterCategory('tech', this)">Tech & Business</div>
+            <div class="chip" onclick="filterCategory('sports', this)">Sports</div>
         </div>
 
         <div class="news-feed" id="newsFeed">
@@ -291,11 +292,11 @@ HTML_TEMPLATE = """
                     <h3>{{ item.title }}</h3>
                     <div class="card-footer">
                         <span>🏷️ {{ item.time }}</span>
-                        <span class="read-more">التفاصيل ⬅️</span>
+                        <span class="read-more">Read More ➡️</span>
                     </div>
                 </div>
                 <div class="news-image-wrapper">
-                    <img src="{{ item.img }}" alt="News" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=150&q=80';">
+                    <img src="{{ item.img }}" alt="News Thumbnail" onerror="this.src='https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=150&q=80';">
                 </div>
             </div>
             {% endfor %}
@@ -304,27 +305,27 @@ HTML_TEMPLATE = """
 
     <section id="profileScreen" class="screen">
         <div class="placeholder-view">
-            <h2>👤 الملف الشخصي</h2>
-            <p style="color: var(--text-muted)">مرحباً بك في لوحة تحكم حسابك الشخصي لرادار الخليج.</p>
+            <h2>👤 Profile Dashboard</h2>
+            <p style="color: var(--text-muted); margin-top: 8px;">Welcome to your personalized GNews Radar account control space.</p>
         </div>
     </section>
 
     <section id="settingsScreen" class="screen">
         <div class="placeholder-view">
-            <h2>⚙️ الإعدادات العامة</h2>
-            <p style="color: var(--text-muted)">تخصيص وضع القراءة، الإشعارات الفورية، ومزامنة المصادر الإخبارية.</p>
+            <h2>⚙️ System Settings</h2>
+            <p style="color: var(--text-muted); margin-top: 8px;">Configure reading display metrics, background synchronization, and push configurations.</p>
         </div>
     </section>
 
     <nav class="bottom-nav">
         <button class="nav-item active" id="tab-home" onclick="switchTab('home')">
-            <span class="icon">🏠</span><span>الرئيسية</span>
+            <span class="icon">🏠</span><span>Home</span>
         </button>
         <button class="nav-item" id="tab-profile" onclick="switchTab('profile')">
-            <span class="icon">👤</span><span>حسابي</span>
+            <span class="icon">👤</span><span>Profile</span>
         </button>
         <button class="nav-item" id="tab-settings" onclick="switchTab('settings')">
-            <span class="icon">⚙️</span><span>الإعدادات</span>
+            <span class="icon">⚙️</span><span>Settings</span>
         </button>
     </nav>
 
@@ -345,7 +346,7 @@ HTML_TEMPLATE = """
         }
 
         function switchTab(screenName) {
-            const titles = { 'home': 'رادار أخبار الخليج', 'profile': 'الملف الشخصي', 'settings': 'الإعدادات والمظهر' };
+            const titles = { 'home': 'GNews Radar', 'profile': 'User Profile', 'settings': 'Preferences' };
             document.getElementById('mainHeaderTitle').innerText = titles[screenName];
 
             document.querySelectorAll('.screen').forEach(scr => scr.classList.remove('active'));
@@ -365,10 +366,11 @@ HTML_TEMPLATE = """
 
 @app.route('/')
 def home():
-    breaking_news = fetch_premium_news("أخبار السعودية ورادار الخليج", "all", "أخبار عامة")
-    cars_news = fetch_premium_news("أسعار السيارات السعودية", "cars", "سيارات")
-    tech_news = fetch_premium_news("تقنية واقتصاد الخليج", "tech", "تقنية وأعمال")
-    sports_news = fetch_premium_news("الدوري السعودي كرة قدم", "sports", "رياضة")
+    # Route clean regional search targets matching english metrics
+    breaking_news = fetch_premium_news("Saudi Arabia news", "all", "General")
+    cars_news = fetch_premium_news("Saudi automotive industry cars", "cars", "Automotive")
+    tech_news = fetch_premium_news("Gulf technology business venture", "tech", "Tech & Biz")
+    sports_news = fetch_premium_news("Saudi Pro League football", "sports", "Sports")
     
     all_news = breaking_news + cars_news + tech_news + sports_news
     return render_template_string(HTML_TEMPLATE, news=all_news)
