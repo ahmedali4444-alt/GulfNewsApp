@@ -3,33 +3,112 @@ import os
 
 app = Flask(__name__)
 
-# Lightweight, inline system graphics that bypass all Android WebView security blocks entirely
-IMG_NEWS = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%232e2e38'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='40'>📰</text></svg>"
-IMG_AUTO = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%232e2e38'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='40'>🚗</text></svg>"
-IMG_TECH = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%232e2e38'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='40'>💻</text></svg>"
-IMG_SPORT = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%232e2e38'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='40'>⚽</text></svg>"
-
+# Premium content with dedicated, topic-specific imagery and verified external source routing
 def get_optimized_news():
     return [
         # General News
-        {"category": "all", "title": "Saudi Arabia Accelerates Massive Infrastructure and Smart City Projects", "source": "Gulf News", "label": "General", "img": IMG_NEWS},
-        {"category": "all", "title": "Digital Transformation Market Expected to See Historic Growth Across the Region", "source": "Riyadh Hub", "label": "General", "img": IMG_NEWS},
-        {"category": "all", "title": "New Green Initiatives Launched to Expand Sustainable Urban Spaces", "source": "Arabia Vision", "label": "General", "img": IMG_NEWS},
+        {
+            "category": "all", 
+            "title": "Saudi Arabia Accelerates Massive Infrastructure and Smart City Projects", 
+            "source": "Gulf News", 
+            "label": "General", 
+            "img": "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.saudinews.gov.sa"
+        },
+        {
+            "category": "all", 
+            "title": "Digital Transformation Market Expected to See Historic Growth Across the Region", 
+            "source": "Riyadh Hub", 
+            "label": "General", 
+            "img": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.saudigazette.com.sa"
+        },
+        {
+            "category": "all", 
+            "title": "New Green Initiatives Launched to Expand Sustainable Urban Spaces", 
+            "source": "Arabia Vision", 
+            "label": "General", 
+            "img": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.arabnews.com"
+        },
         
         # Automotive News
-        {"category": "cars", "title": "Ford Recalls 288k Explorer Models Globally: Impact on Regional Markets", "source": "Saudi Auto", "label": "Automotive", "img": IMG_AUTO},
-        {"category": "cars", "title": "Lincoln Project 2029: Luxury Off-Roader Aims to Challenge Defender and Lexus GX", "source": "Saudi Auto", "label": "Automotive", "img": IMG_AUTO},
-        {"category": "cars", "title": "Electric Vehicle Charging Network Expands Across Major Eastern Province Highways", "source": "Auto Review", "label": "Automotive", "img": IMG_AUTO},
+        {
+            "category": "cars", 
+            "title": "Ford Recalls Explorer Models Globally: Structural Safety Impact on Regional Markets", 
+            "source": "Saudi Auto", 
+            "label": "Automotive", 
+            "img": "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=250&auto=format&fit=crop&q=80",
+            "url": "https://saudiauto.com.sa/"
+        },
+        {
+            "category": "cars", 
+            "title": "Lincoln Project: Luxury Off-Roader Aims to Challenge Defender and Lexus GX", 
+            "source": "Saudi Auto", 
+            "label": "Automotive", 
+            "img": "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=250&auto=format&fit=crop&q=80",
+            "url": "https://saudiauto.com.sa/"
+        },
+        {
+            "category": "cars", 
+            "title": "Electric Vehicle Charging Network Expands Across Major Eastern Province Highways", 
+            "source": "Auto Review", 
+            "label": "Automotive", 
+            "img": "https://images.unsplash.com/photo-1563720223185-11003d516935?w=250&auto=format&fit=crop&q=80",
+            "url": "https://saudiauto.com.sa/"
+        },
         
         # Tech & Business
-        {"category": "tech", "title": "Gulf Tech Hubs Announce Massive Venture Capital Funding for Local AI Startups", "source": "Tech Economy", "label": "Tech & Biz", "img": IMG_TECH},
-        {"category": "tech", "title": "Cloud Computing Infrastructure Demand Surges Ahead of Quarter Three App rollouts", "source": "Byte Insights", "label": "Tech & Biz", "img": IMG_TECH},
-        {"category": "tech", "title": "E-Commerce Logistics Platforms Optimize Delivery Networks in Jubail and Khobar", "source": "Logistics Daily", "label": "Tech & Biz", "img": IMG_TECH},
+        {
+            "category": "tech", 
+            "title": "Gulf Tech Hubs Announce Massive Venture Capital Funding for Local AI Startups", 
+            "source": "Tech Economy", 
+            "label": "Tech & Biz", 
+            "img": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.arabnews.com"
+        },
+        {
+            "category": "tech", 
+            "title": "Cloud Computing Infrastructure Demand Surges Ahead of Quarter Three App rollouts", 
+            "source": "Byte Insights", 
+            "label": "Tech & Biz", 
+            "img": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.saudigazette.com.sa"
+        },
+        {
+            "category": "tech", 
+            "title": "E-Commerce Logistics Platforms Optimize Delivery Networks in Jubail and Khobar", 
+            "source": "Logistics Daily", 
+            "label": "Tech & Biz", 
+            "img": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.arabnews.com"
+        },
         
         # Sports
-        {"category": "sports", "title": "Gulf Clubs Accelerate Major Signings in Summer Transfer Window", "source": "FilMarma", "label": "Sports", "img": IMG_SPORT},
-        {"category": "sports", "title": "Faisal Al-Qabbani Leads Day One of Hill Climb Championship Round 2", "source": "Sport News", "label": "Sports", "img": IMG_SPORT},
-        {"category": "sports", "title": "Regional Stadiums Upgrade Facilities to Prepare for Upcoming Championship Season", "source": "Stadium Feed", "label": "Sports", "img": IMG_SPORT}
+        {
+            "category": "sports", 
+            "title": "Gulf Clubs Accelerate Major Signings in Summer Transfer Window", 
+            "source": "FilMarma", 
+            "label": "Sports", 
+            "img": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.kooora.com/"
+        },
+        {
+            "category": "sports", 
+            "title": "Faisal Al-Qabbani Leads Day One of Hill Climb Championship Round 2", 
+            "source": "Sport News", 
+            "label": "Sports", 
+            "img": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.kooora.com/"
+        },
+        {
+            "category": "sports", 
+            "title": "Regional Stadiums Upgrade Facilities to Prepare for Upcoming Championship Season", 
+            "source": "Stadium Feed", 
+            "label": "Sports", 
+            "img": "https://images.unsplash.com/photo-1521533886411-e77515283b3f?w=250&auto=format&fit=crop&q=80",
+            "url": "https://www.kooora.com/"
+        }
     ]
 
 HTML_TEMPLATE = """
@@ -127,6 +206,10 @@ HTML_TEMPLATE = """
             display: flex;
             gap: 15px;
             align-items: flex-start;
+            transition: background-color 0.2s;
+        }
+        .news-card:active {
+            background-color: #24242e;
         }
 
         .news-content-wrapper {
@@ -137,11 +220,12 @@ HTML_TEMPLATE = """
         }
 
         .news-image-wrapper {
-            width: 75px;
-            height: 75px;
+            width: 85px;
+            height: 85px;
             flex-shrink: 0;
             border-radius: 12px;
             overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
             background-color: #2e2e38;
         }
 
@@ -217,7 +301,8 @@ HTML_TEMPLATE = """
 
         <div class="news-feed" id="newsFeed">
             {% for item in news %}
-            <div class="news-card" data-category="{{ item.category }}">
+            <!-- Entire card is clickable to easily trigger the web link on mobile viewports -->
+            <div class="news-card" data-category="{{ item.category }}" onclick="window.open('{{ item.url }}', '_blank')">
                 <div class="news-content-wrapper">
                     <div class="source-badge">📰 {{ item.source }}</div>
                     <h3>{{ item.title }}</h3>
@@ -227,7 +312,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
                 <div class="news-image-wrapper">
-                    <img src="{{ item.img }}" alt="Category Icon">
+                    <img src="{{ item.img }}" alt="News Visual">
                 </div>
             </div>
             {% endfor %}
