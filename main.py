@@ -12,33 +12,54 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS publishers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
+            name_en TEXT UNIQUE,
+            name_ar TEXT UNIQUE,
             verified INTEGER DEFAULT 1
         )
     ''')
     
+    # Upgraded Reels table to store both English and Arabic content side-by-side
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            body TEXT,
+            title_en TEXT,
+            title_ar TEXT,
+            body_en TEXT,
+            body_ar TEXT,
             category TEXT,
-            source_name TEXT,
+            source_en TEXT,
+            source_ar TEXT,
             bg_gradient TEXT
         )
     ''')
     
     cursor.execute("SELECT COUNT(*) FROM publishers")
     if cursor.fetchone()[0] == 0:
-        cursor.executemany("INSERT INTO publishers (name) VALUES (?)", [
-            ("Arabian Business",), ("Tech Innovators",), ("Global Health Journal",), ("Apex Sports",), ("Capital Investment Group",)
+        cursor.executemany("INSERT INTO publishers (name_en, name_ar) VALUES (?, ?)", [
+            ("Arabian Business", "أريبيان بزنس"),
+            ("Tech Innovators", "مبتكرو التكنولوجيا"),
+            ("Global Health Journal", "مجلة الصحة العالمية"),
+            ("Apex Sports", "أبيكس الرياضية")
         ])
         
-        cursor.executemany("INSERT INTO reels (title, body, category, source_name, bg_gradient) VALUES (?, ?, ?, ?, ?)", [
-            ("Saudi Arabia unveils $2.3bn project pipeline as healthcare and aviation surge", "Operational updates indicate significant ongoing growth trends in regional infrastructure development as Vision 2030 initiatives accelerate funding.", "investment", "Arabian Business", "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"),
-            ("Breakthrough Quantum Microchip Invention Released Globally", "Engineers have deployed a localized solid-state processing microchip architecture that doubles computational clock speeds while reducing draw matrices by 40%.", "invention", "Tech Innovators", "linear-gradient(135deg, #090d16 0%, #1e1b4b 100%)"),
-            ("New Global Health Protocol Cuts Respiratory Recovery Windows", "Clinical trial systems confirm an optimized molecular delivery methodology reduces standard inpatient care metrics across major medical institutions.", "health", "Global Health Journal", "linear-gradient(135deg, #061e16 0%, #0f2e22 100%)"),
-            ("Next-Gen Electric Supercar Shatters Nurburgring Track Records", "A dual-motor powertrain architecture clocked an unprecedented lap matrix, leveraging solid-state battery thermal arrays to sustain max peak torque output.", "cars", "Apex Sports", "linear-gradient(135deg, #1c0d02 0%, #2e1200 100%)")
+        cursor.executemany('''
+            INSERT INTO reels (title_en, title_ar, body_en, body_ar, category, source_en, source_ar, bg_gradient) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [
+            (
+                "Saudi Arabia unveils $2.3bn project pipeline as healthcare and aviation surge",
+                "المملكة العربية السعودية تكشف عن حزمة مشاريع بقيمة 2.3 مليار دولار مع نمو قطاعي الصحة والطيران",
+                "Operational updates indicate significant ongoing growth trends in regional infrastructure development as Vision 2030 initiatives accelerate funding.",
+                "تشير التحديثات التشغيلية إلى اتجاهات نمو مستمرة ومهمة في تطوير البنية التحتية الإقليمية مع تسارع التمويل لمبادرات رؤية 2030.",
+                "investment", "Arabian Business", "أريبيان بزنس", "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
+            ),
+            (
+                "Breakthrough Quantum Microchip Invention Released Globally",
+                "إطلاق ابتكار شريحة كمومية دقيقة جديدة على مستوى العالم",
+                "Engineers have deployed a localized solid-state processing microchip architecture that doubles computational clock speeds safely.",
+                "نجح المهندسون في تطوير بنية تحتية لشريحة معالجة دقيقة تضاعف سرعات الحوسبة بشكل آمن.",
+                "invention", "Tech Innovators", "مبتكرو التكنولوجيا", "linear-gradient(135deg, #090d16 0%, #1e1b4b 100%)"
+            )
         ])
         conn.commit()
     conn.close()
@@ -79,20 +100,14 @@ HTML_TEMPLATE = """
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         body, html { background-color: var(--bg-color); height: 100%; width: 100%; overflow: hidden; transition: background-color 0.3s; }
 
-        /* Permanent Header View */
         .top-app-header {
             position: fixed; top: 0; left: 0; right: 0; height: 60px;
             background-color: var(--surface-color); border-bottom: 1px solid var(--border-color);
             display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 2500;
         }
         .app-logo-title { font-size: 1.25rem; font-weight: 900; color: var(--text-main); }
-        
-        .btn-hamburger {
-            background: none; border: none; color: var(--text-main);
-            font-size: 1.6rem; cursor: pointer; display: flex; align-items: center;
-        }
+        .btn-hamburger { background: none; border: none; color: var(--text-main); font-size: 1.6rem; cursor: pointer; display: flex; align-items: center; }
 
-        /* Multi-Category Scroll Bar under main header */
         .category-scroll-nav {
             position: fixed; top: 60px; left: 0; right: 0; height: 55px;
             background: linear-gradient(to bottom, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0) 100%);
@@ -110,7 +125,6 @@ HTML_TEMPLATE = """
         }
         .nav-category-chip.active { background-color: var(--primary-color); color: #000000; border-color: var(--primary-color); }
 
-        /* 100% Smooth Sliding Drawer Navigation Panel */
         .side-drawer {
             position: fixed; top: 0; bottom: 0; right: 0; width: 280px;
             background-color: var(--surface-color); border-left: 1px solid var(--border-color);
@@ -130,13 +144,11 @@ HTML_TEMPLATE = """
         .drawer-section { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
         .section-label { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Menu Settings rows */
         .setting-row { display: flex; justify-content: space-between; align-items: center; }
         .setting-name { font-size: 0.95rem; font-weight: 600; color: var(--text-main); }
         .btn-toggle-switch { background-color: var(--border-color); border: none; color: var(--text-main); padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
         .btn-toggle-switch.active { background-color: var(--primary-color); color: #000; }
 
-        /* Reel Items Structural Shell */
         .reel-container { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; padding-top: 60px; }
         .reel-container::-webkit-scrollbar { display: none; }
 
@@ -144,7 +156,7 @@ HTML_TEMPLATE = """
         .card-scrim { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.85) 100%); z-index: 1; }
         
         .reel-content { position: relative; z-index: 10; display: flex; flex-direction: column; gap: 14px; width: 85%; text-align: left; }
-        body.light-theme .reel-headline { color: #ffffff; } /* Keep headlines readable against dark card gradients */
+        body.light-theme .reel-headline { color: #ffffff; }
         body.light-theme .reel-snippet { color: #cbd5e1; }
 
         body.rtl .top-app-header { flex-direction: row-reverse; }
@@ -177,7 +189,6 @@ HTML_TEMPLATE = """
 </head>
 <body>
 
-    <!-- Top Navigation Header containing Menu icon -->
     <header class="top-app-header">
         <div class="app-logo-title">GNews</div>
         <button class="btn-hamburger" onclick="openNavDrawer()">☰</button>
@@ -193,7 +204,6 @@ HTML_TEMPLATE = """
         <div class="nav-category-chip" id="chip-games" onclick="filterGlobalCategory('games', this)" data-en="🎮 Games" data-ar="🎮 الألعاب">🎮 Games</div>
     </div>
 
-    <!-- Sliding Sidebar Menu Sheet Drawer Container -->
     <div id="sideDrawerMenu" class="side-drawer">
         <div class="drawer-header">
             <span class="drawer-title" data-en="Control Hub" data-ar="لوحة التحكم">Control Hub</span>
@@ -233,23 +243,27 @@ HTML_TEMPLATE = """
 
     <div class="reel-container" id="newsFeed">
         {% for item in reels %}
-        <div class="reel-card" style="background: {{ item[5] }};"
-             data-category="{{ item[3] }}"
-             data-title="{{ item[1] }}"
-             data-source="{{ item[4] }}"
-             data-body="{{ item[2] }}"
+        <!-- Card maps paired data points for instant language rendering toggles -->
+        <div class="reel-card" style="background: {{ item[8] }};"
+             data-category="{{ item[5] }}"
+             data-title-en="{{ item[1] }}"
+             data-title-ar="{{ item[2] }}"
+             data-source-en="{{ item[6] }}"
+             data-source-ar="{{ item[7] }}"
+             data-body-en="{{ item[3] }}"
+             data-body-ar="{{ item[4] }}"
              onclick="openStoryDetails(this)">
             <div class="card-scrim"></div>
             
             <div class="reel-content">
                 <div class="channel-row">
                     <span class="badge-live" data-en="Verified" data-ar="موثق">Verified</span>
-                    <span class="badge-source">📡 {{ item[4] }}</span>
+                    <span class="badge-source" id="source-display-{{ item[0] }}">📡 {{ item[6] }}</span>
                 </div>
-                <h1 class="reel-headline">{{ item[1] }}</h1>
-                <p class="reel-snippet">{{ item[2] }}</p>
+                <h1 class="reel-headline" id="title-display-{{ item[0] }}">{{ item[1] }}</h1>
+                <p class="reel-snippet" id="body-display-{{ item[0] }}">{{ item[3] }}</p>
                 <div style="color: var(--primary-color); font-weight: 700; font-size: 0.82rem; text-transform: uppercase;">
-                    <span data-en="Category" data-ar="الفئة">Category</span>: {{ item[3] }}
+                    <span data-en="Category" data-ar="الفئة">Category</span>: {{ item[5] }}
                 </div>
             </div>
 
@@ -298,38 +312,24 @@ HTML_TEMPLATE = """
                 langBtn.innerText = 'العربية';
             }
 
+            // 1. Update UI Labels
             document.querySelectorAll('[data-en]').forEach(el => {
                 el.innerText = el.getAttribute('data-' + currentLang);
             });
-        }
 
-        function toggleAppTheme() {
-            const body = document.body;
-            const btn = document.getElementById('themeToggle');
-            body.classList.toggle('light-theme');
-            
-            if(body.classList.contains('light-theme')) {
-                btn.innerText = currentLang === 'en' ? 'On' : 'تشغيل';
-                btn.classList.add('active');
-            } else {
-                btn.innerText = currentLang === 'en' ? 'Off' : 'إيقاف';
-                btn.classList.remove('active');
-            }
-        }
-
-        function toggleTextScaling() {
-            const root = document.documentElement;
-            const btn = document.getElementById('textToggle');
-            
-            if(btn.classList.contains('active')) {
-                root.style.setProperty('--card-title-size', '1.55rem');
-                btn.innerText = currentLang === 'en' ? 'Off' : 'إيقاف';
-                btn.classList.remove('active');
-            } else {
-                root.style.setProperty('--card-title-size', '1.85rem');
-                btn.innerText = currentLang === 'en' ? 'On' : 'تشغيل';
-                btn.classList.add('active');
-            }
+            // 2. Loop through all reels and flip the text nodes instantly
+            document.querySelectorAll('.reel-card').forEach(card => {
+                const id = card.getAttribute('onclick').match(/\\((.*?)\\)/) ? '' : card.querySelector('.reel-headline').id.split('-')[2];
+                if(!id) return;
+                
+                const title = card.getAttribute('data-title-' + currentLang);
+                const source = card.getAttribute('data-source-' + currentLang);
+                const bodyText = card.getAttribute('data-body-' + currentLang);
+                
+                document.getElementById('title-display-' + id).innerText = title;
+                document.getElementById('source-display-' + id).innerText = "📡 " + source;
+                document.getElementById('body-display-' + id).innerText = bodyText;
+            });
         }
 
         function filterGlobalCategory(category, element) {
@@ -355,9 +355,9 @@ HTML_TEMPLATE = """
         }
 
         function openStoryDetails(cardElement) {
-            document.getElementById('modalSourceBadge').innerText = "📡 " + cardElement.getAttribute('data-source');
-            document.getElementById('modalTitle').innerText = cardElement.getAttribute('data-title');
-            document.getElementById('modalBodyText').innerText = cardElement.getAttribute('data-body');
+            document.getElementById('modalSourceBadge').innerText = "📡 " + cardElement.getAttribute('data-source-' + currentLang);
+            document.getElementById('modalTitle').innerText = cardElement.getAttribute('data-title-' + currentLang);
+            document.getElementById('modalBodyText').innerText = cardElement.getAttribute('data-body-' + currentLang);
 
             const modal = document.getElementById('storyModal');
             modal.style.display = 'flex';
@@ -365,6 +365,28 @@ HTML_TEMPLATE = """
 
         function closeStoryDetails() {
             document.getElementById('storyModal').style.display = 'none';
+        }
+
+        function toggleAppTheme() {
+            const body = document.body;
+            const btn = document.getElementById('themeToggle');
+            body.classList.toggle('light-theme');
+            btn.innerText = body.classList.contains('light-theme') ? (currentLang === 'en' ? 'On' : 'تشغيل') : (currentLang === 'en' ? 'Off' : 'إيقاف');
+            body.classList.contains('light-theme') ? btn.classList.add('active') : btn.classList.remove('active');
+        }
+
+        function toggleTextScaling() {
+            const root = document.documentElement;
+            const btn = document.getElementById('textToggle');
+            if(btn.classList.contains('active')) {
+                root.style.setProperty('--card-title-size', '1.55rem');
+                btn.innerText = currentLang === 'en' ? 'Off' : 'إيقاف';
+                btn.classList.remove('active');
+            } else {
+                root.style.setProperty('--card-title-size', '1.85rem');
+                btn.innerText = currentLang === 'en' ? 'On' : 'تشغيل';
+                btn.classList.add('active');
+            }
         }
     </script>
 </body>
@@ -378,33 +400,52 @@ CREATOR_PORTAL_TEMPLATE = """
     <meta charset="UTF-8">
     <title>GNews Agency Portal</title>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
-        .card { background-color: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; margin-bottom: 20px; }
-        label { display: block; margin: 12px 0 6px; font-weight: bold; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 12px; background-color: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; margin-bottom: 10px; font-size: 1rem; }
-        button { background-color: #38bdf8; color: #0f172a; border: none; width: 100%; padding: 14px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 15px; }
+        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; padding: 40px; max-width: 700px; margin: 0 auto; }
+        .card { background-color: #1e293b; padding: 35px; border-radius: 12px; border: 1px solid #334155; }
+        h1 { color: #38bdf8; margin-bottom: 5px; }
+        .row { display: flex; gap: 20px; margin-bottom: 10px; }
+        .col { flex: 1; }
+        label { display: block; margin: 12px 0 6px; font-weight: bold; font-size: 0.9rem; color: #38bdf8; }
+        input, textarea, select { width: 100%; padding: 12px; background-color: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; font-size: 1rem; }
+        button { background-color: #38bdf8; color: #0f172a; border: none; width: 100%; padding: 16px; border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 25px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>📡 Agency Dashboard</h1>
-        <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px;">Authenticated Platform Broadcast Upload Terminal</p>
+        <h1>📡 Global Agency Dashboard</h1>
+        <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 25px;">Bilingual News Distribution & Live Feed Deployment Terminal</p>
         <form action="/publish" method="POST">
-            <label>Select Your Certified News Agency</label>
-            <select name="source_name">
+            
+            <label>Select Certified News Agency Group</label>
+            <select name="agency_info">
                 {% for agency in agencies %}
-                <option value="{{ agency[1] }}">{{ agency[1] }}</option>
+                <option value="{{ agency[1] }}|{{ agency[2] }}">{{ agency[1] }} / {{ agency[2] }}</option>
                 {% endfor %}
             </select>
+
+            <div class="row">
+                <div class="col">
+                    <label>Headline Title (English)</label>
+                    <input type="text" name="title_en" placeholder="e.g. Market shifts..." required>
+                </div>
+                <div class="col">
+                    <label>العنوان الرئيسي (باللغة العربية)</label>
+                    <input type="text" name="title_ar" placeholder="مثال: تغيرات السوق العامة..." style="text-align: right;" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <label>Full Content Context (English)</label>
+                    <textarea name="body_en" rows="5" placeholder="Write full analytical description here..." required></textarea>
+                </div>
+                <div class="col">
+                    <label>نص الخبر الكامل (باللغة العربية)</label>
+                    <textarea name="body_ar" rows="5" placeholder="اكتب تفاصيل التقرير الكامل هنا..." style="text-align: right;" required></textarea>
+                </div>
+            </div>
             
-            <label>Broadcast Title Headline</label>
-            <input type="text" name="title" placeholder="e.g., Global Market Shifts..." required>
-            
-            <label>News Content Scope (Full Story)</label>
-            <textarea name="body" rows="5" placeholder="Write full context here..." required></textarea>
-            
-            <label>Content Category Target</label>
+            <label>Target Placement Category</label>
             <select name="category">
                 <option value="investment">Investment / الاستثمار</option>
                 <option value="invention">Invention / الابتكارات</option>
@@ -414,7 +455,7 @@ CREATOR_PORTAL_TEMPLATE = """
                 <option value="games">Games / الألعاب</option>
             </select>
             
-            <button type="submit">🚀 Deploy Live Broadcast Reel</button>
+            <button type="submit">🚀 Broadcast Live Bilingual Reel</button>
         </form>
     </div>
 </body>
@@ -425,7 +466,7 @@ CREATOR_PORTAL_TEMPLATE = """
 def home():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, title, body, category, source_name, bg_gradient FROM reels ORDER BY id DESC")
+    cursor.execute("SELECT id, title_en, title_ar, body_en, body_ar, category, source_en, source_ar, bg_gradient FROM reels ORDER BY id DESC")
     all_reels = cursor.fetchall()
     conn.close()
     
@@ -438,17 +479,21 @@ def home():
 def agency_portal():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name FROM publishers")
+    cursor.execute("SELECT id, name_en, name_ar FROM publishers")
     agencies = cursor.fetchall()
     conn.close()
     return render_template_string(CREATOR_PORTAL_TEMPLATE, agencies=agencies)
 
 @app.route('/publish', methods=['POST'])
 def publish_story():
-    title = request.form.get('title')
-    body = request.form.get('body')
+    title_en = request.form.get('title_en')
+    title_ar = request.form.get('title_ar')
+    body_en = request.form.get('body_en')
+    body_ar = request.form.get('body_ar')
     category = request.form.get('category')
-    source_name = request.form.get('source_name')
+    
+    agency_info = request.form.get('agency_info')
+    source_en, source_ar = agency_info.split('|')
     
     color_schemes = {
         "investment": "linear-gradient(135deg, #111827 0%, #06b6d4 100%)",
@@ -462,8 +507,10 @@ def publish_story():
     
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO reels (title, body, category, source_name, bg_gradient) VALUES (?, ?, ?, ?, ?)",
-                   (title, body, category, source_name, bg_gradient))
+    cursor.execute('''
+        INSERT INTO reels (title_en, title_ar, body_en, body_ar, category, source_en, source_ar, bg_gradient) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (title_en, title_ar, body_en, body_ar, category, source_en, source_ar, bg_gradient))
     conn.commit()
     conn.close()
     return redirect(url_for('home'))
