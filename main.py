@@ -8,6 +8,7 @@ import os
 
 app = Flask(__name__)
 
+# Premium Vector Assets wrapped cleanly
 SVG_GENERAL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231e293b'/><path d='M20 80V40h15v40H20zm20 0V20h15v40H40zm20 0V50h15v30H60zm20 0V35h10v45H80z' fill='%2338bdf8' opacity='0.7'/><line x1='10' y1='80' x2='90' y2='80' stroke='%2394a3b8' stroke-width='2'/></svg>"
 SVG_AUTO = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231e293b'/><path d='M15 55l10-15h50l10 15h5v15H10V55h5zm15 15a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm40 0a7 7 0 1 0 0-14 7 7 0 0 0 0 14z' fill='%2338bdf8' opacity='0.8'/></svg>"
 SVG_TECH = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231e293b'/><rect x='25' y='25' width='50' height='40' rx='3' fill='none' stroke='%2338bdf8' stroke-width='4'/><path d='M20 75h60v4H20zM45 65h10v10H45z' fill='%2338bdf8'/><circle cx='50' cy='45' r='5' fill='%2338bdf8' opacity='0.5'/></svg>"
@@ -182,7 +183,7 @@ HTML_TEMPLATE = """
         }
         .btn-toggle.active { background-color: var(--primary-color); color: #fff; }
 
-        /* Clean Summary Reader Modal Sheet */
+        /* Clean Brief Modal overlay */
         .reader-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-color); z-index: 5000;
@@ -257,7 +258,15 @@ HTML_TEMPLATE = """
 
         <div class="news-feed" id="newsFeed">
             {% for item in news %}
-            <div class="news-card" data-category="{{ item.category }}" onclick="openArticleSummary('{{ item.title | replace("'", "\\'") }}', '{{ item.source | replace("'", "\\'") }}', '{{ item.label | replace("'", "\\'") }}', '{{ item.img }}', '{{ item.url }}')">
+            <!-- Uses direct element dataset targets to eliminate string quote crashing completely -->
+            <div class="news-card" 
+                 data-category="{{ item.category }}" 
+                 data-title="{{ item.title }}" 
+                 data-source="{{ item.source }}" 
+                 data-label="{{ item.label }}" 
+                 data-img="{{ item.img }}" 
+                 data-url="{{ item.url }}" 
+                 onclick="handleCardClick(this)">
                 <div class="news-content-wrapper">
                     <div class="source-badge">📰 {{ item.source }}</div>
                     <h3>{{ item.title }}</h3>
@@ -302,7 +311,7 @@ HTML_TEMPLATE = """
         </div>
     </section>
 
-    <!-- In-App Premium Summary Reader Sheet -->
+    <!-- Brief Reader view panel -->
     <div id="articleReader" class="reader-modal">
         <div class="reader-header">
             <span style="font-weight:700; font-size:0.95rem;">Article Brief</span>
@@ -364,16 +373,24 @@ HTML_TEMPLATE = """
 
         function goToHome() { switchTab('home'); }
 
-        // Controls for the Safe Brief View Panel
-        function openArticleSummary(title, source, label, img, url) {
-            if(url === '#' || url === '') return;
-            
-            document.getElementById('summaryIcon').src = img;
-            document.getElementById('summaryBadge').innerText = "📰 " + source + " • " + label;
-            document.getElementById('summaryTitle').innerText = title;
-            document.getElementById('summaryLink').href = url;
-            
-            document.getElementById('articleReader').classList.add('open');
+        // Secure metadata extractor to shield app shell from quote character crashes
+        if (typeof handleCardClick !== 'function') {
+            window.handleCardClick = function(cardElement) {
+                const title = cardElement.getAttribute('data-title');
+                const source = cardElement.getAttribute('data-source');
+                const label = cardElement.getAttribute('data-label');
+                const img = cardElement.getAttribute('data-img');
+                const url = cardElement.getAttribute('data-url');
+                
+                if(!url || url === '#') return;
+                
+                document.getElementById('summaryIcon').src = img;
+                document.getElementById('summaryBadge').innerText = "📰 " + source + " • " + label;
+                document.getElementById('summaryTitle').innerText = title;
+                document.getElementById('summaryLink').href = url;
+                
+                document.getElementById('articleReader').classList.add('open');
+            };
         }
 
         function closeArticleSummary() {
