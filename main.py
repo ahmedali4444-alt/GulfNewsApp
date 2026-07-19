@@ -293,7 +293,8 @@ def agency_portal():
     conn.close()
     return render_template_string(CREATOR_PORTAL_TEMPLATE, agencies=agencies)
 
-@app.route('/publish', method=['POST'])
+# FIXED: Changed 'method' argument to plural 'methods'
+@app.route('/publish', methods=['POST'])
 def publish_story():
     title = request.form.get('title')
     body = request.form.get('body')
