@@ -297,6 +297,26 @@ HTML_TEMPLATE = """
         function openNavDrawer() { document.getElementById('sideDrawerMenu').classList.add('open'); }
         function closeNavDrawer() { document.getElementById('sideDrawerMenu').classList.remove('open'); }
 
+        // Helper engine to lock language state across all actions
+        function updateAllCardsToCurrentLanguage() {
+            document.querySelectorAll('[data-en]').forEach(el => {
+                el.innerText = el.getAttribute('data-' + currentLang);
+            });
+
+            document.querySelectorAll('.reel-card').forEach(card => {
+                const id = card.getAttribute('data-id');
+                if (!id) return;
+                
+                const title = card.getAttribute('data-title-' + currentLang);
+                const source = card.getAttribute('data-source-' + currentLang);
+                const bodyText = card.getAttribute('data-body-' + currentLang);
+                
+                document.getElementById('title-display-' + id).innerText = title;
+                document.getElementById('source-display-' + id).innerText = "📡 " + source;
+                document.getElementById('body-display-' + id).innerText = bodyText;
+            });
+        }
+
         function toggleLanguage() {
             const body = document.body;
             const langBtn = document.getElementById('langBtn');
@@ -311,24 +331,7 @@ HTML_TEMPLATE = """
                 langBtn.innerText = 'العربية';
             }
 
-            // 1. Update system labels
-            document.querySelectorAll('[data-en]').forEach(el => {
-                el.innerText = el.getAttribute('data-' + currentLang);
-            });
-
-            // 2. FIXED: Access data attributes via element properties to handle multi-language rendering perfectly
-            document.querySelectorAll('.reel-card').forEach(card => {
-                const id = card.getAttribute('data-id');
-                if (!id) return;
-                
-                const title = card.getAttribute('data-title-' + currentLang);
-                const source = card.getAttribute('data-source-' + currentLang);
-                const bodyText = card.getAttribute('data-body-' + currentLang);
-                
-                document.getElementById('title-display-' + id).innerText = title;
-                document.getElementById('source-display-' + id).innerText = "📡 " + source;
-                document.getElementById('body-display-' + id).innerText = bodyText;
-            });
+            updateAllCardsToCurrentLanguage();
         }
 
         function filterGlobalCategory(category, element) {
@@ -347,6 +350,9 @@ HTML_TEMPLATE = """
                     card.style.display = 'none';
                 }
             });
+
+            // Re-apply language state lock upon reloading filtered structures
+            updateAllCardsToCurrentLanguage();
 
             if (firstVisibleCard) {
                 firstVisibleCard.scrollIntoView({ behavior: 'smooth' });
@@ -400,7 +406,7 @@ CREATOR_PORTAL_TEMPLATE = """
     <title>GNews Agency Portal</title>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; padding: 40px; max-width: 700px; margin: 0 auto; }
-        .card { background-color: #1e293b; padding: 35px; border-radius: 12px; border: 1px solid #334155; }
+        .card = { background-color: #1e293b; padding: 35px; border-radius: 12px; border: 1px solid #334155; }
         h1 { color: #38bdf8; margin-bottom: 5px; }
         .row { display: flex; gap: 20px; margin-bottom: 10px; }
         .col { flex: 1; }
