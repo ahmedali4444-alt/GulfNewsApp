@@ -210,7 +210,6 @@ HTML_TEMPLATE = """
             font-weight: 700; font-size: 1.05rem; cursor: pointer;
         }
 
-        /* Object display wrapper acts as a native internal rendering viewport */
         .reader-object-wrapper {
             width: 100%; flex-grow: 1; background-color: #ffffff;
             overflow: hidden; -webkit-overflow-scrolling: touch;
@@ -302,7 +301,6 @@ HTML_TEMPLATE = """
         </div>
     </section>
 
-    <!-- Pinned In-App Browser screen with native viewport rendering fallback -->
     <div id="internalReader" class="reader-screen">
         <div class="reader-header">
             <button class="btn-back-reader" onclick="closeInternalReader()">⬅️ Back to Feed</button>
@@ -354,7 +352,6 @@ HTML_TEMPLATE = """
 
         function goToHome() { switchTab('home'); }
 
-        // Fluid internal viewer asset trigger pipeline
         window.viewArticleInternally = function(cardElement) {
             const url = cardElement.getAttribute('data-url');
             if(!url || url === '#') return;
@@ -367,7 +364,7 @@ HTML_TEMPLATE = """
 
         function closeInternalReader() {
             document.getElementById('internalReader').classList.remove('open');
-            document.getElementById('articleObjectViewer').data = ""; // Flush DOM allocation
+            document.getElementById('articleObjectViewer').data = "";
         }
 
         function toggleTheme() {
@@ -404,3 +401,20 @@ HTML_TEMPLATE = """
 </html>
 """
 
+@app.route('/')
+def home():
+    display_news = NEWS_CACHE if NEWS_CACHE else [
+        {"category": "all", "title": "Synchronizing latest news streams. Pull down to refresh...", "source": "System", "label": "General", "img": SVG_GENERAL, "url": "#"},
+        {"category": "cars", "title": "Updating live automotive insights from local markets...", "source": "System", "label": "Automotive", "img": SVG_AUTO, "url": "#"},
+        {"category": "tech", "title": "Parsing data for regional technology sectors...", "source": "System", "label": "Tech & Biz", "img": SVG_TECH, "url": "#"},
+        {"category": "sports", "title": "Fetching updated match lists and team schedules...", "source": "System", "label": "Sports", "img": SVG_SPORTS, "url": "#"}
+    ]
+    response = make_response(render_template_string(HTML_TEMPLATE, news=display_news))
+    response.headers['X-Frame-Options'] = 'ALLOWALL'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
