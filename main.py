@@ -139,15 +139,13 @@ HTML_TEMPLATE = """
 
         .news-feed { display: flex; flex-direction: column; gap: 14px; }
 
-        /* Wrapped card inside an anchor layout for native wrapper system handling */
-        .card-link { text-decoration: none; color: inherit; display: block; }
-
         .news-card {
             background-color: var(--surface-color); border-radius: 16px;
             padding: 16px; border: 1px solid var(--border-color);
             box-shadow: 0 6px 18px rgba(0,0,0,0.05); cursor: pointer;
             display: flex; gap: 15px; align-items: flex-start;
         }
+        .news-card:active { background-color: #24242e; }
 
         .news-content-wrapper { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
         .news-image-wrapper { width: 80px; height: 80px; flex-shrink: 0; border-radius: 12px; overflow: hidden; }
@@ -184,6 +182,28 @@ HTML_TEMPLATE = """
         }
         .btn-toggle.active { background-color: var(--primary-color); color: #fff; }
 
+        /* Fullscreen Secure Reading Modal overlay */
+        .reader-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); z-index: 5000;
+            display: none; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.3s ease-out;
+        }
+        .reader-modal.open { display: flex; transform: translateY(0); }
+
+        .reader-header {
+            height: 60px; background-color: var(--surface-color);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; border-bottom: 1px solid var(--border-color);
+        }
+        .btn-close-reader {
+            background-color: #ef4444; color: white; border: none;
+            padding: 6px 14px; border-radius: 20px; font-weight: 800;
+            font-size: 0.85rem; cursor: pointer;
+        }
+
+        .reader-frame { width: 100%; flex-grow: 1; border: none; background-color: white; }
+
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; height: 75px;
             background-color: var(--surface-color); border-top: 1px solid var(--border-color);
@@ -219,22 +239,19 @@ HTML_TEMPLATE = """
 
         <div class="news-feed" id="newsFeed">
             {% for item in news %}
-            <!-- Native target formats clear wrapper trap constraints -->
-            <a href="{{ item.url }}" target="_blank" class="card-link" rel="noopener noreferrer">
-                <div class="news-card" data-category="{{ item.category }}">
-                    <div class="news-content-wrapper">
-                        <div class="source-badge">📰 {{ item.source }}</div>
-                        <h3>{{ item.title }}</h3>
-                        <div class="card-footer">
-                            <span>🏷️ {{ item.label }}</span>
-                            <span class="read-more">Read More ➡️</span>
-                        </div>
-                    </div>
-                    <div class="news-image-wrapper">
-                        <img src="{{ item.img }}" alt="Topic Image">
+            <div class="news-card" data-category="{{ item.category }}" onclick="openArticle('{{ item.url }}')">
+                <div class="news-content-wrapper">
+                    <div class="source-badge">📰 {{ item.source }}</div>
+                    <h3>{{ item.title }}</h3>
+                    <div class="card-footer">
+                        <span>🏷️ {{ item.label }}</span>
+                        <span class="read-more">Read More ➡️</span>
                     </div>
                 </div>
-            </a>
+                <div class="news-image-wrapper">
+                    <img src="{{ item.img }}" alt="Topic Image">
+                </div>
+            </div>
             {% endfor %}
         </div>
     </main>
@@ -267,6 +284,15 @@ HTML_TEMPLATE = """
         </div>
     </section>
 
+    <!-- In-App Layered Reader Sheet with Hard Close Access -->
+    <div id="articleReader" class="reader-modal">
+        <div class="reader-header">
+            <span style="font-weight:700; font-size:0.95rem;">Reading Mode</span>
+            <button class="btn-close-reader" onclick="closeArticle()">❌ Close Article</button>
+        </div>
+        <iframe id="readerIframe" class="reader-frame" src=""></iframe>
+    </div>
+
     <nav class="bottom-nav">
         <button class="nav-item active" id="tab-home" onclick="switchTab('home')">
             <span>🏠</span><span>Home</span>
@@ -284,11 +310,10 @@ HTML_TEMPLATE = """
             document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
             element.classList.add('active');
 
-            const cards = document.querySelectorAll('.card-link');
+            const cards = document.querySelectorAll('.news-card');
             cards.forEach(card => {
-                const internalCard = card.querySelector('.news-card');
-                if (category === 'all' || internalCard.getAttribute('data-category') === category) {
-                    card.style.display = 'block';
+                if (category === 'all' || card.getAttribute('data-category') === category) {
+                    card.style.display = 'flex';
                 } else {
                     card.style.display = 'none';
                 }
@@ -309,6 +334,22 @@ HTML_TEMPLATE = """
         }
 
         function goToHome() { switchTab('home'); }
+
+        // In-App Reader Controllers
+        function openArticle(url) {
+            if(url === '#' || url === '') return;
+            const iframe = document.getElementById('readerIframe');
+            const modal = document.getElementById('articleReader');
+            iframe.src = url;
+            modal.classList.add('open');
+        }
+
+        function closeArticle() {
+            const modal = document.getElementById('articleReader');
+            const iframe = document.getElementById('readerIframe');
+            modal.classList.remove('open');
+            iframe.src = ""; // Flush memory
+        }
 
         function toggleTheme() {
             const body = document.body;
