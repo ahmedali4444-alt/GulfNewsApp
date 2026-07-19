@@ -292,17 +292,30 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
-        let currentLang = 'en';
+        // Use global localStorage tracker so data stays continuous across container resets
+        let currentLang = localStorage.getItem('gnews_lang') || 'en';
 
         function openNavDrawer() { document.getElementById('sideDrawerMenu').classList.add('open'); }
         function closeNavDrawer() { document.getElementById('sideDrawerMenu').classList.remove('open'); }
 
-        // Helper engine to lock language state across all actions
-        function updateAllCardsToCurrentLanguage() {
+        function applyLanguageState() {
+            const body = document.body;
+            const langBtn = document.getElementById('langBtn');
+            
+            if (currentLang === 'ar') {
+                body.classList.add('rtl');
+                langBtn.innerText = 'English';
+            } else {
+                body.classList.remove('rtl');
+                langBtn.innerText = 'العربية';
+            }
+
+            // Translate application controls
             document.querySelectorAll('[data-en]').forEach(el => {
                 el.innerText = el.getAttribute('data-' + currentLang);
             });
 
+            // Re-render feed elements layout safely using exact matching indexes
             document.querySelectorAll('.reel-card').forEach(card => {
                 const id = card.getAttribute('data-id');
                 if (!id) return;
@@ -318,20 +331,9 @@ HTML_TEMPLATE = """
         }
 
         function toggleLanguage() {
-            const body = document.body;
-            const langBtn = document.getElementById('langBtn');
-            
-            if (currentLang === 'en') {
-                currentLang = 'ar';
-                body.classList.add('rtl');
-                langBtn.innerText = 'English';
-            } else {
-                currentLang = 'en';
-                body.classList.remove('rtl');
-                langBtn.innerText = 'العربية';
-            }
-
-            updateAllCardsToCurrentLanguage();
+            currentLang = (currentLang === 'en') ? 'ar' : 'en';
+            localStorage.setItem('gnews_lang', currentLang);
+            applyLanguageState();
         }
 
         function filterGlobalCategory(category, element) {
@@ -351,8 +353,8 @@ HTML_TEMPLATE = """
                 }
             });
 
-            // Re-apply language state lock upon reloading filtered structures
-            updateAllCardsToCurrentLanguage();
+            // Enforce language lock bounds after structural sorting execution
+            applyLanguageState();
 
             if (firstVisibleCard) {
                 firstVisibleCard.scrollIntoView({ behavior: 'smooth' });
@@ -393,6 +395,12 @@ HTML_TEMPLATE = """
                 btn.classList.add('active');
             }
         }
+
+        // Initialize state configuration right away when DOM content renders
+        window.addEventListener('DOMContentLoaded', applyLanguageState);
+        
+        // Handle native scroll container events to lock rendering language parameters continually
+        document.getElementById('newsFeed').addEventListener('scroll', applyLanguageState);
     </script>
 </body>
 </html>
@@ -406,7 +414,7 @@ CREATOR_PORTAL_TEMPLATE = """
     <title>GNews Agency Portal</title>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; padding: 40px; max-width: 700px; margin: 0 auto; }
-        .card = { background-color: #1e293b; padding: 35px; border-radius: 12px; border: 1px solid #334155; }
+        .card { background-color: #1e293b; padding: 35px; border-radius: 12px; border: 1px solid #334155; }
         h1 { color: #38bdf8; margin-bottom: 5px; }
         .row { display: flex; gap: 20px; margin-bottom: 10px; }
         .col { flex: 1; }
