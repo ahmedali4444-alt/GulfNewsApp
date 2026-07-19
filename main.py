@@ -30,7 +30,7 @@ def scrape_rss_feed(query, category_slug, category_label, svg_icon):
         
         for item in items[:6]:
             title_text = item.find('title').text if item.find('title') is not None else ""
-            desc_text = item.find('description').text if item.find('description') is not None else ""
+            link_text = item.find('link').text if item.find('link') is not None else "https://news.google.com"
             
             if not title_text:
                 continue
@@ -42,16 +42,13 @@ def scrape_rss_feed(query, category_slug, category_label, svg_icon):
                 clean_title = parts[0].strip()
                 source_name = parts[1].strip()
                 
-            # Create a localized clean text summary fallback so users can read inside the shell
-            body_paragraph = f"Latest live updates regarding {clean_title}. Detailed operational reporting continues to monitor progress closely across regional hubs."
-            
             articles.append({
                 "category": category_slug, 
                 "title": clean_title, 
                 "source": source_name,
                 "label": category_label, 
                 "img": svg_icon,
-                "story_body": body_paragraph
+                "url": link_text
             })
     except Exception as e:
         print(f"Error scraping {query}: {e}")
@@ -131,7 +128,7 @@ HTML_TEMPLATE = """
 
         .category-container {
             padding: 15px 20px 20px 20px;
-            display: flex gap: 12px;
+            display: flex; gap: 12px;
             overflow-x: auto; white-space: nowrap;
         }
         .category-container::-webkit-scrollbar { display: none; }
@@ -194,37 +191,31 @@ HTML_TEMPLATE = """
         }
         .btn-toggle.active { background-color: var(--primary-color); color: #fff; }
 
-        /* 100% Secure Internal Fullscreen Reader Layout */
+        /* Fullscreen In-App Browser Layout */
         .reader-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: var(--bg-color); z-index: 6000;
+            background-color: #ffffff; z-index: 6000;
             display: none; flex-direction: column;
-            transform: translateX(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(100%); transition: transform 0.25s ease-out;
         }
         .reader-screen.open { display: flex; transform: translateX(0); }
 
         .reader-header {
-            height: 65px; background-color: var(--surface-color);
+            height: 65px; background-color: #1c1c22;
             display: flex; align-items: center; justify-content: flex-start;
-            padding: 0 20px; border-bottom: 1px solid var(--border-color); gap: 15px;
+            padding: 0 20px; border-bottom: 1px solid #2e2e38; gap: 15px;
         }
         .btn-back-reader {
-            background: none; border: none; color: var(--primary-color);
+            background: none; border: none; color: #38bdf8;
             font-weight: 700; font-size: 1.05rem; cursor: pointer;
         }
 
-        .reader-content {
-            flex-grow: 1; padding: 25px 20px; display: flex;
-            flex-direction: column; gap: 20px; overflow-y: auto;
+        /* Object display wrapper acts as a native internal rendering viewport */
+        .reader-object-wrapper {
+            width: 100%; flex-grow: 1; background-color: #ffffff;
+            overflow: hidden; -webkit-overflow-scrolling: touch;
         }
-        .reader-banner-wrapper {
-            width: 90px; height: 90px; align-self: center;
-            border-radius: 20px; overflow: hidden; margin-bottom: 5px;
-        }
-        .reader-banner-wrapper img { width: 100%; height: 100%; object-fit: fill; }
-        
-        .reader-headline { font-size: 1.35rem; font-weight: 800; line-height: 1.45; color: var(--text-main); }
-        .reader-article-body { font-size: 1.05rem; line-height: 1.7; color: var(--text-main); opacity: 0.95; margin-top: 10px; text-align: justify; }
+        .reader-object-element { width: 100%; height: 100%; border: none; }
 
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; height: 75px;
@@ -264,17 +255,15 @@ HTML_TEMPLATE = """
             <div class="news-card" 
                  data-category="{{ item.category }}" 
                  data-title="{{ item.title }}" 
-                 data-source="{{ item.source }}" 
-                 data-label="{{ item.label }}" 
                  data-img="{{ item.img }}" 
-                 data-body="{{ item.story_body }}" 
+                 data-url="{{ item.url }}" 
                  onclick="viewArticleInternally(this)">
                 <div class="news-content-wrapper">
                     <div class="source-badge">📰 {{ item.source }}</div>
                     <h3>{{ item.title }}</h3>
                     <div class="card-footer">
                         <span>🏷️ {{ item.label }}</span>
-                        <span class="read-more">Read Full Story ➡️</span>
+                        <span class="read-more">Read Full Article ➡️</span>
                     </div>
                 </div>
                 <div class="news-image-wrapper">
@@ -313,19 +302,13 @@ HTML_TEMPLATE = """
         </div>
     </section>
 
-    <!-- 100% Immersive Native Reading Mode Screen -->
+    <!-- Pinned In-App Browser screen with native viewport rendering fallback -->
     <div id="internalReader" class="reader-screen">
         <div class="reader-header">
             <button class="btn-back-reader" onclick="closeInternalReader()">⬅️ Back to Feed</button>
         </div>
-        <div class="reader-content">
-            <div class="reader-banner-wrapper">
-                <img id="articleIcon" src="" alt="Icon">
-            </div>
-            <div id="articleBadge" class="source-badge" style="align-self: center;"></div>
-            <h1 id="articleHeadline" class="reader-headline"></h1>
-            <hr style="border: none; height: 1px; background-color: var(--border-color); margin: 5px 0;">
-            <p id="articleBodyText" class="reader-article-body"></p>
+        <div class="reader-object-wrapper">
+            <object id="articleObjectViewer" class="reader-object-element" type="text/html" data=""></object>
         </div>
     </div>
 
@@ -371,24 +354,20 @@ HTML_TEMPLATE = """
 
         function goToHome() { switchTab('home'); }
 
-        // 100% Fluid In-App Reading View Controllers
+        // Fluid internal viewer asset trigger pipeline
         window.viewArticleInternally = function(cardElement) {
-            const title = cardElement.getAttribute('data-title');
-            const source = cardElement.getAttribute('data-source');
-            const label = cardElement.getAttribute('data-label');
-            const img = cardElement.getAttribute('data-img');
-            const body = cardElement.getAttribute('data-body');
+            const url = cardElement.getAttribute('data-url');
+            if(!url || url === '#') return;
             
-            document.getElementById('articleIcon').src = img;
-            document.getElementById('articleBadge').innerText = "📰 " + source + " • " + label;
-            document.getElementById('articleHeadline').innerText = title;
-            document.getElementById('articleBodyText').innerText = body;
+            const viewer = document.getElementById('articleObjectViewer');
+            viewer.data = url;
             
             document.getElementById('internalReader').classList.add('open');
         };
 
         function closeInternalReader() {
             document.getElementById('internalReader').classList.remove('open');
+            document.getElementById('articleObjectViewer').data = ""; // Flush DOM allocation
         }
 
         function toggleTheme() {
@@ -425,20 +404,3 @@ HTML_TEMPLATE = """
 </html>
 """
 
-@app.route('/')
-def home():
-    display_news = NEWS_CACHE if NEWS_CACHE else [
-        {"category": "all", "title": "Synchronizing latest news streams. Pull down to refresh...", "source": "System", "label": "General", "img": SVG_GENERAL, "story_body": "Hang tight while the background task compiles local headlines."},
-        {"category": "cars", "title": "Updating live automotive insights from local markets...", "source": "System", "label": "Automotive", "img": SVG_AUTO, "story_body": "Grabbing electric and standard vehicle reporting updates."},
-        {"category": "tech", "title": "Parsing data for regional technology sectors...", "source": "System", "label": "Tech & Biz", "img": SVG_TECH, "story_body": "Updating venture capital streams and ecosystem summaries."},
-        {"category": "sports", "title": "Fetching updated match lists and team schedules...", "source": "System", "label": "Sports", "img": SVG_SPORTS, "story_body": "Syncing league reports and tournament summaries."}
-    ]
-    response = make_response(render_template_string(HTML_TEMPLATE, news=display_news))
-    response.headers['X-Frame-Options'] = 'ALLOWALL'
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return response
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
