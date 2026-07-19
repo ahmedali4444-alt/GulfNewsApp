@@ -34,7 +34,7 @@ def scrape_rss_feed(query, category_slug, category_label, svg_backdrop):
         root = ET.fromstring(xml_data)
         items = root.findall('./channel/item')
         
-        for item in items[:8]: # Expanded depth queue
+        for item in items[:8]:
             title_text = item.find('title').text if item.find('title') is not None else ""
             desc_element = item.find('description')
             raw_desc = desc_element.text if desc_element is not None else ""
@@ -50,7 +50,7 @@ def scrape_rss_feed(query, category_slug, category_label, svg_backdrop):
             
             clean_description = clean_html_tags(raw_desc)
             if len(clean_description) < 15 or clean_description.startswith(clean_title[:10]):
-                clean_description = f"Operational assessments indicate major growth trends across localized focal networks. Strategic reporting from {source_name} monitors structural frameworks, tracking real-time industry updates."
+                clean_description = f"Operational updates indicate significant ongoing growth trends in regional development. Broad industrial shifts continue to gather speed, establishing structural milestones across core economic sectors."
 
             articles.append({
                 "category": category_slug, 
@@ -104,7 +104,6 @@ HTML_TEMPLATE = """
             overflow: hidden;
         }
 
-        /* Full Screen Swiper Feed Shell */
         .reel-container {
             height: 100%; width: 100%;
             overflow-y: scroll;
@@ -114,7 +113,6 @@ HTML_TEMPLATE = """
         }
         .reel-container::-webkit-scrollbar { display: none; }
 
-        /* Individual TikTok Aspect Broadcast Section */
         .reel-card {
             width: 100%; height: 100%;
             scroll-snap-align: start;
@@ -125,20 +123,19 @@ HTML_TEMPLATE = """
             display: flex; flex-direction: column;
             justify-content: flex-end;
             padding: 40px 24px 120px 24px;
+            cursor: pointer;
         }
 
-        /* Clean Foreground Visibility Shield */
         .card-scrim {
             position: absolute; inset: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.85) 100%);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.85) 100%);
             z-index: 1;
         }
 
-        /* Broadcast Content wrapper */
         .reel-content {
             position: relative; z-index: 10;
             display: flex; flex-direction: column;
-            gap: 16px; width: 84%;
+            gap: 14px; width: 84%;
         }
 
         .channel-row {
@@ -150,7 +147,6 @@ HTML_TEMPLATE = """
             font-size: 0.72rem; font-weight: 900;
             padding: 3px 10px; border-radius: 4px;
             letter-spacing: 1px; text-transform: uppercase;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
         }
 
         .badge-source {
@@ -161,21 +157,22 @@ HTML_TEMPLATE = """
             backdrop-filter: blur(8px);
         }
 
-        /* High-Impact Cinematic Kinetic Typography */
         .reel-headline {
             font-size: 1.6rem; font-weight: 900;
             line-height: 1.35; color: #ffffff;
             text-shadow: 0 4px 12px rgba(0,0,0,0.6);
-            letter-spacing: -0.5px;
         }
 
         .reel-snippet {
-            font-size: 0.95rem; line-height: 1.6;
+            font-size: 0.95rem; line-height: 1.55;
             color: #cbd5e1; font-weight: 400;
-            opacity: 0.9;
+            opacity: 0.85;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
-        /* Sidebar Interface Buttons Stack */
         .action-sidebar {
             position: absolute; right: 16px; bottom: 130px;
             z-index: 20; display: flex; flex-direction: column;
@@ -188,12 +185,35 @@ HTML_TEMPLATE = """
             width: 50px; height: 50px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             color: white; font-size: 1.3rem; cursor: pointer;
-            backdrop-filter: blur(10px); transition: transform 0.2s;
+            backdrop-filter: blur(10px);
         }
-        .action-button:active { transform: scale(0.9); }
         .action-label { font-size: 0.7rem; color: #94a3b8; font-weight: 700; margin-top: 4px; }
 
-        /* Minimal Bottom Navigator strip */
+        /* Smooth Slide-Up Details Sheet */
+        .story-modal {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 60%;
+            background-color: #121216; border-radius: 24px 24px 0 0;
+            border-top: 1px solid #2e2e38; z-index: 5000;
+            display: none; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 24px; color: #ffffff;
+        }
+        .story-modal.open { display: flex; transform: translateY(0); }
+
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; border-bottom: 1px solid #2e2e38; padding-bottom: 14px;
+        }
+        .btn-close-modal {
+            background-color: #ef4444; color: white; border: none;
+            padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        .modal-title { font-size: 1.35rem; font-weight: 800; line-height: 1.4; color: #ffffff; }
+        .modal-text { font-size: 1.05rem; line-height: 1.7; color: #cbd5e1; text-align: justify; }
+
         .nav-strip {
             position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
             background: linear-gradient(to top, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
@@ -202,17 +222,21 @@ HTML_TEMPLATE = """
         .nav-center-pill {
             background-color: #38bdf8; color: #000000;
             font-weight: 900; font-size: 0.85rem; padding: 10px 28px;
-            border-radius: 30px; letter-spacing: 0.5px; text-transform: uppercase;
-            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+            border-radius: 30px; text-transform: uppercase;
         }
     </style>
 </head>
 <body>
 
-    <!-- Scrollable Video-Style Frame Feed Container -->
     <div class="reel-container" id="newsFeed">
         {% for item in news %}
-        <div class="reel-card" style="background-image: url('{{ item.img }}');">
+        <!-- Entire card triggers the customized details drawer safely inside the window -->
+        <div class="reel-card" style="background-image: url('{{ item.img }}');"
+             data-title="{{ item.title }}"
+             data-source="{{ item.source }}"
+             data-label="{{ item.label }}"
+             data-body="{{ item.story_body }}"
+             onclick="openStoryDetails(this)">
             <div class="card-scrim"></div>
             
             <div class="reel-content">
@@ -227,14 +251,13 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
-            <!-- Stacked Engagement Layer -->
             <div class="action-sidebar">
-                <div style="text-align: center;">
-                    <button class="action-button" onclick="alert('Story bookmarked successfully!')">⚡</button>
+                <div style="text-align: center;" onclick="event.stopPropagation(); alert('Added to reading list!')">
+                    <button class="action-button">⚡</button>
                     <div class="action-label">Save</div>
                 </div>
-                <div style="text-align: center;">
-                    <button class="action-button" onclick="alert('Link parsed for global distribution channel.')">🔗</button>
+                <div style="text-align: center;" onclick="event.stopPropagation(); alert('Link extracted successfully!')">
+                    <button class="action-button">🔗</button>
                     <div class="action-label">Share</div>
                 </div>
             </div>
@@ -242,10 +265,48 @@ HTML_TEMPLATE = """
         {% endfor %}
     </div>
 
+    <!-- Smart In-App Slide Up Drawer Panel -->
+    <div id="storyModal" class="story-modal">
+        <div class="modal-header">
+            <span id="modalSourceBadge" class="badge-source" style="background-color: rgba(56,189,248,0.15); color: #38bdf8;"></span>
+            <button class="btn-close-modal" onclick="closeStoryDetails()">❌ Close Story</button>
+        </div>
+        <div class="modal-body">
+            <h2 id="modalTitle" class="modal-title"></h2>
+            <p id="modalBodyText" class="modal-text"></p>
+        </div>
+    </div>
+
     <nav class="nav-strip">
         <div class="nav-center-pill">GNews Radar Feed</div>
     </nav>
 
+    <script>
+        function openStoryDetails(cardElement) {
+            const title = cardElement.getAttribute('data-title');
+            const source = cardElement.getAttribute('data-source');
+            const label = cardElement.getAttribute('data-label');
+            const body = cardElement.getAttribute('data-body');
+
+            document.getElementById('modalSourceBadge').innerText = "📡 " + source + " • " + label;
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalBodyText').innerText = body;
+
+            const modal = document.getElementById('storyModal');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('open');
+            }, 10);
+        }
+
+        function closeStoryDetails() {
+            const modal = document.getElementById('storyModal');
+            modal.classList.remove('open');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 250);
+        }
+    </script>
 </body>
 </html>
 """
