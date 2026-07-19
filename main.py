@@ -182,27 +182,45 @@ HTML_TEMPLATE = """
         }
         .btn-toggle.active { background-color: var(--primary-color); color: #fff; }
 
-        /* Fullscreen Secure Reading Modal overlay */
+        /* Clean Summary Reader Modal Sheet */
         .reader-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-color); z-index: 5000;
             display: none; flex-direction: column;
-            transform: translateY(100%); transition: transform 0.3s ease-out;
+            transform: translateY(100%); transition: transform 0.25s ease-out;
         }
         .reader-modal.open { display: flex; transform: translateY(0); }
 
         .reader-header {
-            height: 60px; background-color: var(--surface-color);
+            height: 65px; background-color: var(--surface-color);
             display: flex; align-items: center; justify-content: space-between;
             padding: 0 20px; border-bottom: 1px solid var(--border-color);
         }
         .btn-close-reader {
             background-color: #ef4444; color: white; border: none;
-            padding: 6px 14px; border-radius: 20px; font-weight: 800;
+            padding: 8px 16px; border-radius: 20px; font-weight: 800;
             font-size: 0.85rem; cursor: pointer;
         }
 
-        .reader-frame { width: 100%; flex-grow: 1; border: none; background-color: white; }
+        .reader-body {
+            flex-grow: 1; padding: 30px 20px; display: flex;
+            flex-direction: column; gap: 20px; overflow-y: auto;
+        }
+        .reader-icon-wrapper {
+            width: 100px; height: 100px; align-self: center;
+            border-radius: 20px; overflow: hidden; margin-bottom: 10px;
+        }
+        .reader-icon-wrapper img { width: 100%; height: 100%; object-fit: fill; }
+        
+        .reader-title { font-size: 1.4rem; font-weight: 800; line-height: 1.4; color: var(--text-main); text-align: center; }
+        
+        .btn-open-external {
+            display: block; width: 100%; background-color: var(--primary-color);
+            color: var(--surface-color); text-align: center; padding: 16px;
+            border-radius: 14px; font-weight: 700; font-size: 1.05rem;
+            text-decoration: none; margin-top: auto;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+        }
 
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0; height: 75px;
@@ -239,7 +257,7 @@ HTML_TEMPLATE = """
 
         <div class="news-feed" id="newsFeed">
             {% for item in news %}
-            <div class="news-card" data-category="{{ item.category }}" onclick="openArticle('{{ item.url }}')">
+            <div class="news-card" data-category="{{ item.category }}" onclick="openArticleSummary('{{ item.title | replace("'", "\\'") }}', '{{ item.source | replace("'", "\\'") }}', '{{ item.label | replace("'", "\\'") }}', '{{ item.img }}', '{{ item.url }}')">
                 <div class="news-content-wrapper">
                     <div class="source-badge">📰 {{ item.source }}</div>
                     <h3>{{ item.title }}</h3>
@@ -284,13 +302,24 @@ HTML_TEMPLATE = """
         </div>
     </section>
 
-    <!-- In-App Layered Reader Sheet with Hard Close Access -->
+    <!-- In-App Premium Summary Reader Sheet -->
     <div id="articleReader" class="reader-modal">
         <div class="reader-header">
-            <span style="font-weight:700; font-size:0.95rem;">Reading Mode</span>
-            <button class="btn-close-reader" onclick="closeArticle()">❌ Close Article</button>
+            <span style="font-weight:700; font-size:0.95rem;">Article Brief</span>
+            <button class="btn-close-reader" onclick="closeArticleSummary()">❌ Close Brief</button>
         </div>
-        <iframe id="readerIframe" class="reader-frame" src=""></iframe>
+        <div class="reader-body">
+            <div class="reader-icon-wrapper">
+                <img id="summaryIcon" src="" alt="Icon">
+            </div>
+            <div id="summaryBadge" class="source-badge" style="align-self: center;"></div>
+            <h2 id="summaryTitle" class="reader-title"></h2>
+            <p id="summaryDesc" style="color: var(--text-muted); text-align: center; font-size: 0.95rem; line-height: 1.6; margin-top: 10px;">
+                You can view the full live publication directly on the publisher's official website by tapping the action link below.
+            </p>
+            
+            <a id="summaryLink" class="btn-open-external" href="" target="_blank">🔗 Open Full Website</a>
+        </div>
     </div>
 
     <nav class="bottom-nav">
@@ -335,20 +364,20 @@ HTML_TEMPLATE = """
 
         function goToHome() { switchTab('home'); }
 
-        // In-App Reader Controllers
-        function openArticle(url) {
+        // Controls for the Safe Brief View Panel
+        function openArticleSummary(title, source, label, img, url) {
             if(url === '#' || url === '') return;
-            const iframe = document.getElementById('readerIframe');
-            const modal = document.getElementById('articleReader');
-            iframe.src = url;
-            modal.classList.add('open');
+            
+            document.getElementById('summaryIcon').src = img;
+            document.getElementById('summaryBadge').innerText = "📰 " + source + " • " + label;
+            document.getElementById('summaryTitle').innerText = title;
+            document.getElementById('summaryLink').href = url;
+            
+            document.getElementById('articleReader').classList.add('open');
         }
 
-        function closeArticle() {
-            const modal = document.getElementById('articleReader');
-            const iframe = document.getElementById('readerIframe');
-            modal.classList.remove('open');
-            iframe.src = ""; // Flush memory
+        function closeArticleSummary() {
+            document.getElementById('articleReader').classList.remove('open');
         }
 
         function toggleTheme() {
