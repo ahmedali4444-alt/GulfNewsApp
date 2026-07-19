@@ -1,83 +1,59 @@
-from flask import Flask, render_template_string, make_response
-import urllib.request
-import urllib.parse
-import xml.etree.ElementTree as ET
-import threading
-import time
+from flask import Flask, render_template_string, request, redirect, url_for, make_response
+import sqlite3
 import os
-import re
 
 app = Flask(__name__)
+DB_FILE = "gnews_platform.db"
 
-# Fluid Vertical Motion Backdrops matching your key news channels
-SVG_GENERAL = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1080 1920'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230f172a'/><stop offset='100%25' stop-color='%231e293b'/></linearGradient></defs><rect width='1080' height='1920' fill='url(%23g)'/><circle cx='540' cy='960' r='400' fill='%2338bdf8' opacity='0.04'><animate attributeName='r' values='300;450;300' dur='6s' repeatCount='indefinite'/></circle><path d='M100 1500h880' stroke='%2338bdf8' stroke-width='4' opacity='0.2'/></svg>"
-SVG_AUTO = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1080 1920'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%230b0f19'/><stop offset='100%25' stop-color='%23111827'/></linearGradient></defs><rect width='1080' height='1920' fill='url(%23g)'/><path d='M-100 960 Q 540 600 1180 960' fill='none' stroke='%2338bdf8' stroke-width='8' opacity='0.08'><animate attributeName='d' values='M-100 960 Q 540 500 1180 960; M-100 960 Q 540 1300 1180 960; M-100 960 Q 540 500 1180 960' dur='8s' repeatCount='indefinite'/></path></svg>"
-SVG_TECH = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1080 1920'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23090d16'/><stop offset='100%25' stop-color='%231e1b4b'/></linearGradient></defs><rect width='1080' height='1920' fill='url(%23g)'/><g fill='%2338bdf8' opacity='0.15'><circle cx='200' cy='400' r='3'><animate attributeName='opacity' values='0.2;1;0.2' dur='3s' repeatCount='indefinite'/></circle><circle cx='800' cy='600' r='4'><animate attributeName='opacity' values='1;0.2;1' dur='4s' repeatCount='indefinite'/></circle><circle cx='400' cy='1400' r='3'><animate attributeName='opacity' values='0.1;0.8;0.1' dur='2.5s' repeatCount='indefinite'/></circle></g></svg>"
-SVG_SPORTS = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1080 1920'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%23061320'/><stop offset='100%25' stop-color='%230f172a'/></linearGradient></defs><rect width='1080' height='1920' fill='url(%23g)'/><path d='M0 300 L1080 600 M0 1600 L1080 1300' stroke='%2338bdf8' stroke-width='2' opacity='0.05'/><circle cx='540' cy='960' r='200' fill='none' stroke='%2338bdf8' stroke-width='4' opacity='0.06'><animate attributeName='transform' type='scale' values='1;1.2;1' dur='5s' repeatCount='indefinite'/></circle></svg>"
-
-NEWS_CACHE = []
-
-def clean_html_tags(text):
-    if not text: return ""
-    clean = re.compile('<.*?>')
-    return re.sub(clean, '', text).strip()
-
-def scrape_rss_feed(query, category_slug, category_label, svg_backdrop):
-    articles = []
-    try:
-        encoded_query = urllib.parse.quote(query)
-        url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en&gl=SA&ceid=SA:en"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=8) as response:
-            xml_data = response.read()
-        root = ET.fromstring(xml_data)
-        items = root.findall('./channel/item')
+# Database Configuration and Seed Logic
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    
+    # 1. Create Publishers Table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS publishers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            verified INTEGER DEFAULT 1
+        )
+    ''')
+    
+    # 2. Create News Reels Table supporting all custom categories
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            body TEXT,
+            category TEXT,
+            source_name TEXT,
+            bg_gradient TEXT
+        )
+    ''')
+    
+    # Seed Initial Channels if empty
+    cursor.execute("SELECT COUNT(*) FROM publishers")
+    if cursor.fetchone()[0] == 0:
+        cursor.executemany("INSERT INTO publishers (name) VALUES (?)", [
+            ("Arabian Business",), ("Tech Innovators",), ("Global Health Journal",), ("Apex Sports",), ("Capital Investment Group",)
+        ])
         
-        for item in items[:8]:
-            title_text = item.find('title').text if item.find('title') is not None else ""
-            desc_element = item.find('description')
-            raw_desc = desc_element.text if desc_element is not None else ""
-            
-            if not title_text: continue
-                
-            source_name = "Regional Feed"
-            clean_title = title_text
-            if " - " in title_text:
-                parts = title_text.rsplit(" - ", 1)
-                clean_title = parts[0].strip()
-                source_name = parts[1].strip()
-            
-            clean_description = clean_html_tags(raw_desc)
-            if len(clean_description) < 15 or clean_description.startswith(clean_title[:10]):
-                clean_description = f"Operational updates indicate significant ongoing growth trends in regional development. Broad industrial shifts continue to gather speed, establishing structural milestones across core economic sectors."
+        cursor.executemany("INSERT INTO reels (title, body, category, source_name, bg_gradient) VALUES (?, ?, ?, ?, ?)", [
+            ("Saudi Arabia unveils $2.3bn project pipeline as healthcare and aviation surge", "Operational updates indicate significant ongoing growth trends in regional infrastructure development as Vision 2030 initiatives accelerate funding.", "investment", "Arabian Business", "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"),
+            ("Breakthrough Quantum Microchip Invention Released Globally", "Engineers have deployed a localized solid-state processing microchip architecture that doubles computational clock speeds while reducing draw matrices by 40%.", "invention", "Tech Innovators", "linear-gradient(135deg, #090d16 0%, #1e1b4b 100%)"),
+            ("New Global Health Protocol Cuts Respiratory Recovery Windows", "Clinical trial systems confirm an optimized molecular delivery methodology reduces standard inpatient care metrics across major medical institutions.", "health", "Global Health Journal", "linear-gradient(135deg, #061e16 0%, #0f2e22 100%)"),
+            ("Next-Gen Electric Supercar Shatters Nurburgring Track Records", "A dual-motor powertrain architecture clocked an unprecedented lap matrix, leveraging solid-state battery thermal arrays to sustain max peak torque output.", "cars", "Apex Sports", "linear-gradient(135deg, #1c0d02 0%, #2e1200 100%)")
+        ])
+        conn.commit()
+    conn.close()
 
-            articles.append({
-                "category": category_slug, 
-                "title": clean_title, 
-                "source": source_name,
-                "label": category_label, 
-                "img": svg_backdrop,
-                "story_body": clean_description
-            })
-    except Exception as e:
-        print(f"Error scraping {query}: {e}")
-    return articles
+init_db()
 
-def update_news_cache_worker():
-    global NEWS_CACHE
-    while True:
-        general = scrape_rss_feed("Saudi Arabia infrastructure project economy", "all", "General News", SVG_GENERAL)
-        auto = scrape_rss_feed("Saudi automotive electric car market", "cars", "Automotive", SVG_AUTO)
-        tech = scrape_rss_feed("Gulf tech sector artificial intelligence business", "tech", "Tech & Biz", SVG_TECH)
-        sports = scrape_rss_feed("Saudi Pro League football transfers match", "sports", "Sports Feed", SVG_SPORTS)
-        combined_news = general + auto + tech + sports
-        if combined_news:
-            NEWS_CACHE = combined_news
-        time.sleep(3600)
-
-thread = threading.Thread(target=update_news_cache_worker, daemon=True)
-thread.start()
+# Premium Dynamic UI Icons
+ICON_MAP = {
+    "all": "🌐", "health": "❤️", "investment": "📈", "invention": "💡", 
+    "cars": "🚗", "sports": "⚽", "games": "🎮"
+}
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -85,178 +61,106 @@ HTML_TEMPLATE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>GNews Radar</title>
+    <title>GNews Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0; padding: 0;
-            font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body, html { background-color: #000000; height: 100%; width: 100%; overflow: hidden; }
 
-        body, html {
-            background-color: #000000;
-            height: 100%; width: 100%;
-            overflow: hidden;
+        /* Multi-Category Floating Navigation Header Bar */
+        .category-scroll-nav {
+            position: fixed; top: 0; left: 0; right: 0; height: 65px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0) 100%);
+            display: flex; align-items: center; padding: 0 16px; gap: 10px;
+            overflow-x: auto; white-space: nowrap; z-index: 2000;
         }
+        .category-scroll-nav::-webkit-scrollbar { display: none; }
+        
+        .nav-category-chip {
+            background-color: rgba(28, 28, 34, 0.6); color: #94a3b8;
+            border: 1px solid rgba(255,255,255,0.1); padding: 6px 16px;
+            border-radius: 20px; font-size: 0.8rem; font-weight: 800; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .nav-category-chip.active { background-color: #38bdf8; color: #000000; border-color: #38bdf8; }
 
-        .reel-container {
-            height: 100%; width: 100%;
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
+        .reel-container { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
         .reel-container::-webkit-scrollbar { display: none; }
 
         .reel-card {
-            width: 100%; height: 100%;
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            position: relative;
-            background-size: cover;
-            background-position: center;
-            display: flex; flex-direction: column;
-            justify-content: flex-end;
-            padding: 40px 24px 120px 24px;
-            cursor: pointer;
+            width: 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always;
+            position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+            padding: 40px 24px 110px 24px;
         }
 
-        .card-scrim {
-            position: absolute; inset: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.85) 100%);
-            z-index: 1;
-        }
+        .card-scrim { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.85) 100%); z-index: 1; }
+        .reel-content { position: relative; z-index: 10; display: flex; flex-direction: column; gap: 14px; width: 85%; }
+        
+        .channel-row { display: flex; align-items: center; gap: 8px; }
+        .badge-live { background-color: #ef4444; color: white; font-size: 0.7rem; font-weight: 900; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; }
+        .badge-source { background-color: rgba(255,255,255,0.12); color: #ffffff; border: 1px solid rgba(255,255,255,0.15); font-size: 0.8rem; font-weight: 700; padding: 3px 12px; border-radius: 6px; backdrop-filter: blur(8px); }
 
-        .reel-content {
-            position: relative; z-index: 10;
-            display: flex; flex-direction: column;
-            gap: 14px; width: 84%;
-        }
+        .reel-headline { font-size: 1.55rem; font-weight: 900; line-height: 1.35; color: #ffffff; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .reel-snippet { font-size: 0.95rem; line-height: 1.55; color: #cbd5e1; opacity: 0.85; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
-        .channel-row {
-            display: flex; align-items: center; gap: 10px;
-        }
+        .action-sidebar { position: absolute; right: 16px; bottom: 120px; z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .action-button { background: rgba(28, 28, 34, 0.6); border: 1px solid rgba(255,255,255,0.1); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; cursor: pointer; backdrop-filter: blur(10px); }
+        .action-label { font-size: 0.68rem; color: #94a3b8; font-weight: 700; margin-top: 4px; text-align: center; }
 
-        .badge-live {
-            background-color: #ef4444; color: white;
-            font-size: 0.72rem; font-weight: 900;
-            padding: 3px 10px; border-radius: 4px;
-            letter-spacing: 1px; text-transform: uppercase;
-        }
-
-        .badge-source {
-            background-color: rgba(255,255,255,0.12);
-            color: #ffffff; border: 1px solid rgba(255,255,255,0.15);
-            font-size: 0.8rem; font-weight: 700;
-            padding: 3px 12px; border-radius: 6px;
-            backdrop-filter: blur(8px);
-        }
-
-        .reel-headline {
-            font-size: 1.6rem; font-weight: 900;
-            line-height: 1.35; color: #ffffff;
-            text-shadow: 0 4px 12px rgba(0,0,0,0.6);
-        }
-
-        .reel-snippet {
-            font-size: 0.95rem; line-height: 1.55;
-            color: #cbd5e1; font-weight: 400;
-            opacity: 0.85;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .action-sidebar {
-            position: absolute; right: 16px; bottom: 130px;
-            z-index: 20; display: flex; flex-direction: column;
-            align-items: center; gap: 24px;
-        }
-
-        .action-button {
-            background: rgba(28, 28, 34, 0.6);
-            border: 1px solid rgba(255,255,255,0.1);
-            width: 50px; height: 50px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 1.3rem; cursor: pointer;
-            backdrop-filter: blur(10px);
-        }
-        .action-label { font-size: 0.7rem; color: #94a3b8; font-weight: 700; margin-top: 4px; }
-
-        /* Smooth Slide-Up Details Sheet */
-        .story-modal {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 60%;
-            background-color: #121216; border-radius: 24px 24px 0 0;
-            border-top: 1px solid #2e2e38; z-index: 5000;
-            display: none; flex-direction: column;
-            transform: translateY(100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 24px; color: #ffffff;
-        }
-        .story-modal.open { display: flex; transform: translateY(0); }
-
-        .modal-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; border-bottom: 1px solid #2e2e38; padding-bottom: 14px;
-        }
-        .btn-close-modal {
-            background-color: #ef4444; color: white; border: none;
-            padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-        .modal-title { font-size: 1.35rem; font-weight: 800; line-height: 1.4; color: #ffffff; }
-        .modal-text { font-size: 1.05rem; line-height: 1.7; color: #cbd5e1; text-align: justify; }
-
-        .nav-strip {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 70px;
-            background: linear-gradient(to top, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%);
-            display: flex; justify-content: center; align-items: center; z-index: 1000;
-        }
-        .nav-center-pill {
-            background-color: #38bdf8; color: #000000;
-            font-weight: 900; font-size: 0.85rem; padding: 10px 28px;
-            border-radius: 30px; text-transform: uppercase;
-        }
+        /* Dynamic Detail Modal Sheet */
+        .story-modal { position: fixed; bottom: 0; left: 0; right: 0; height: 60%; background-color: #121216; border-radius: 24px 24px 0 0; border-top: 1px solid #2e2e38; z-index: 5000; display: none; flex-direction: column; padding: 24px; color: #ffffff; }
+        .story-modal.open { display: flex; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid #2e2e38; padding-bottom: 12px; }
+        .btn-close-modal { background-color: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
+        .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        .modal-title { font-size: 1.3rem; font-weight: 800; line-height: 1.4; }
+        .modal-text { font-size: 1.02rem; line-height: 1.65; color: #cbd5e1; text-align: justify; }
     </style>
 </head>
 <body>
 
+    <!-- Scrollable Global Category Switcher Ribbon -->
+    <div class="category-scroll-nav">
+        <div class="nav-category-chip active" onclick="filterGlobalCategory('all', this)">🌐 All Streams</div>
+        <div class="nav-category-chip" onclick="filterGlobalCategory('investment', this)">📈 Investment</div>
+        <div class="nav-category-chip" onclick="filterGlobalCategory('invention', this)">💡 Invention</div>
+        <div class="nav-category-chip" onclick="filterGlobalCategory('health', this)">❤️ Health</div>
+        <div class="nav-category-chip" onclick="filterGlobalCategory('cars', this)">🚗 Cars</div>
+        <div class="nav-category-chip" onclick="filterGlobalCategory('sports', this)">⚽ Sports</div>
+        <div class="nav-category-chip" onclick="filterGlobalCategory('games', this)">🎮 Games</div>
+    </div>
+
     <div class="reel-container" id="newsFeed">
-        {% for item in news %}
-        <!-- Entire card triggers the customized details drawer safely inside the window -->
-        <div class="reel-card" style="background-image: url('{{ item.img }}');"
-             data-title="{{ item.title }}"
-             data-source="{{ item.source }}"
-             data-label="{{ item.label }}"
-             data-body="{{ item.story_body }}"
+        {% for item in reels %}
+        <div class="reel-card" style="background: {{ item[5] }};"
+             data-category="{{ item[3] }}"
+             data-title="{{ item[1] }}"
+             data-source="{{ item[4] }}"
+             data-body="{{ item[2] }}"
              onclick="openStoryDetails(this)">
             <div class="card-scrim"></div>
             
             <div class="reel-content">
                 <div class="channel-row">
-                    <span class="badge-live">Live</span>
-                    <span class="badge-source">📡 {{ item.source }}</span>
+                    <span class="badge-live">Verified</span>
+                    <span class="badge-source">📡 {{ item[4] }}</span>
                 </div>
-                <h1 class="reel-headline">{{ item.title }}</h1>
-                <p class="reel-snippet">{{ item.story_body }}</p>
-                <div style="color: #38bdf8; font-weight: 700; font-size: 0.82rem; margin-top: 4px;">
-                    📌 Topic: {{ item.label }}
+                <h1 class="reel-headline">{{ item[1] }}</h1>
+                <p class="reel-snippet">{{ item[2] }}</p>
+                <div style="color: #38bdf8; font-weight: 700; font-size: 0.82rem; text-transform: uppercase;">
+                    Category: {{ item[3] }}
                 </div>
             </div>
 
             <div class="action-sidebar">
-                <div style="text-align: center;" onclick="event.stopPropagation(); alert('Added to reading list!')">
+                <div style="text-align: center;" onclick="event.stopPropagation(); alert('Saved directly to personal reader feed.')">
                     <button class="action-button">⚡</button>
                     <div class="action-label">Save</div>
                 </div>
-                <div style="text-align: center;" onclick="event.stopPropagation(); alert('Link extracted successfully!')">
+                <div style="text-align: center;" onclick="event.stopPropagation(); alert('Broadcast share link copied.')">
                     <button class="action-button">🔗</button>
                     <div class="action-label">Share</div>
                 </div>
@@ -265,11 +169,10 @@ HTML_TEMPLATE = """
         {% endfor %}
     </div>
 
-    <!-- Smart In-App Slide Up Drawer Panel -->
     <div id="storyModal" class="story-modal">
         <div class="modal-header">
             <span id="modalSourceBadge" class="badge-source" style="background-color: rgba(56,189,248,0.15); color: #38bdf8;"></span>
-            <button class="btn-close-modal" onclick="closeStoryDetails()">❌ Close Story</button>
+            <button class="btn-close-modal" onclick="closeStoryDetails()">❌ Close</button>
         </div>
         <div class="modal-body">
             <h2 id="modalTitle" class="modal-title"></h2>
@@ -277,52 +180,144 @@ HTML_TEMPLATE = """
         </div>
     </div>
 
-    <nav class="nav-strip">
-        <div class="nav-center-pill">GNews Radar Feed</div>
-    </nav>
-
     <script>
-        function openStoryDetails(cardElement) {
-            const title = cardElement.getAttribute('data-title');
-            const source = cardElement.getAttribute('data-source');
-            const label = cardElement.getAttribute('data-label');
-            const body = cardElement.getAttribute('data-body');
+        function filterGlobalCategory(category, element) {
+            document.querySelectorAll('.nav-category-chip').forEach(chip => chip.classList.remove('active'));
+            element.classList.add('active');
 
-            document.getElementById('modalSourceBadge').innerText = "📡 " + source + " • " + label;
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalBodyText').innerText = body;
+            const cards = document.querySelectorAll('.reel-card');
+            let firstVisibleCard = null;
+
+            cards.forEach(card => {
+                const cardCat = card.getAttribute('data-category');
+                if (category === 'all' || cardCat === category) {
+                    card.style.display = 'flex';
+                    if (!firstVisibleCard) firstVisibleCard = card;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (firstVisibleCard) {
+                firstVisibleCard.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function openStoryDetails(cardElement) {
+            document.getElementById('modalSourceBadge').innerText = "📡 " + cardElement.getAttribute('data-source');
+            document.getElementById('modalTitle').innerText = cardElement.getAttribute('data-title');
+            document.getElementById('modalBodyText').innerText = cardElement.getAttribute('data-body');
 
             const modal = document.getElementById('storyModal');
             modal.style.display = 'flex';
-            setTimeout(() => {
-                modal.classList.add('open');
-            }, 10);
         }
 
         function closeStoryDetails() {
-            const modal = document.getElementById('storyModal');
-            modal.classList.remove('open');
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 250);
+            document.getElementById('storyModal').style.display = 'none';
         }
     </script>
 </body>
 </html>
 """
 
+CREATOR_PORTAL_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GNews Agency Portal</title>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; padding: 40px; max-width: 600px; margin: 0 auto; }
+        .card { background-color: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; }
+        h1 { color: #38bdf8; margin-bottom: 20px; }
+        label { display: block; margin: 12px 0 6px; font-weight: bold; font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 12px; background-color: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; margin-bottom: 10px; font-size: 1rem; }
+        button { background-color: #38bdf8; color: #0f172a; border: none; width: 100%; padding: 14px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📡 Agency Dashboard</h1>
+        <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px;">Authenticated Platform Broadcast Upload Terminal</p>
+        <form action="/publish" method="POST">
+            <label>Select Your Certified News Agency</label>
+            <select name="source_name">
+                {% for agency in agencies %}
+                <option value="{{ agency[1] }}">{{ agency[1] }}</option>
+                {% endfor %}
+            </select>
+            
+            <label>Broadcast Title Headline</label>
+            <input type="text" name="title" placeholder="e.g., Global Market Shifts..." required>
+            
+            <label>News Content Scope (Full Story)</label>
+            <textarea name="body" rows="5" placeholder="Write full context here..." required></textarea>
+            
+            <label>Content Category Target</label>
+            <select name="category">
+                <option value="investment">Investment</option>
+                <option value="invention">Invention</option>
+                <option value="health">Health</option>
+                <option value="cars">Cars</option>
+                <option value="sports">Sports</option>
+                <option value="games">Games</option>
+            </select>
+            
+            <button type="submit">🚀 Deploy Live Broadcast Reel</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
+
 @app.route('/')
 def home():
-    display_news = NEWS_CACHE if NEWS_CACHE else [
-        {"category": "all", "title": "Establishing secure live data connection. Swipe up to prepare streams...", "source": "Radar System", "label": "General", "img": SVG_GENERAL, "story_body": "Synchronizing secure digital broadcast modules from regional feeds."},
-        {"category": "cars", "title": "Compiling fresh automotive and electric infrastructure metrics...", "source": "Auto Sector", "label": "Automotive", "img": SVG_AUTO, "story_body": "Aggregating industrial growth parameters and vehicle supply updates."},
-        {"category": "tech", "title": "Processing venture capital ecosystem analytics...", "source": "Tech Hub", "label": "Tech & Biz", "img": SVG_TECH, "story_body": "Calibrating database arrays for decentralized software markets."}
-    ]
-    response = make_response(render_template_string(HTML_TEMPLATE, news=display_news))
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, body, category, source_name, bg_gradient FROM reels ORDER BY id DESC")
+    all_reels = cursor.fetchall()
+    conn.close()
+    
+    response = make_response(render_template_string(HTML_TEMPLATE, reels=all_reels))
     response.headers['X-Frame-Options'] = 'ALLOWALL'
-    response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
+
+# Hidden Publisher route to test content creation
+@app.route('/agency-portal')
+def agency_portal():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name FROM publishers")
+    agencies = cursor.fetchall()
+    conn.close()
+    return render_template_string(CREATOR_PORTAL_TEMPLATE, agencies=agencies)
+
+@app.route('/publish', method=['POST'])
+def publish_story():
+    title = request.form.get('title')
+    body = request.form.get('body')
+    category = request.form.get('category')
+    source_name = request.form.get('source_name')
+    
+    # Generate unique premium colors dynamically based on category types
+    color_schemes = {
+        "investment": "linear-gradient(135deg, #111827 0%, #06b6d4 100%)",
+        "invention": "linear-gradient(135deg, #0f172a 0%, #4f46e5 100%)",
+        "health": "linear-gradient(135deg, #022c22 0%, #0d9488 100%)",
+        "cars": "linear-gradient(135deg, #1e1b4b 0%, #b45309 100%)",
+        "sports": "linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%)",
+        "games": "linear-gradient(135deg, #311042 0%, #701a75 100%)"
+    }
+    bg_gradient = color_schemes.get(category, "linear-gradient(135deg, #000000 0%, #1c1c22 100%)")
+    
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO reels (title, body, category, source_name, bg_gradient) VALUES (?, ?, ?, ?, ?)",
+                   (title, body, category, source_name, bg_gradient))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('home'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
