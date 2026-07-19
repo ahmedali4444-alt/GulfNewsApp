@@ -5,12 +5,10 @@ import os
 app = Flask(__name__)
 DB_FILE = "gnews_platform.db"
 
-# Database Configuration and Seed Logic
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
-    # 1. Create Publishers Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS publishers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +17,6 @@ def init_db():
         )
     ''')
     
-    # 2. Create News Reels Table supporting all custom categories
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +28,6 @@ def init_db():
         )
     ''')
     
-    # Seed Initial Channels if empty
     cursor.execute("SELECT COUNT(*) FROM publishers")
     if cursor.fetchone()[0] == 0:
         cursor.executemany("INSERT INTO publishers (name) VALUES (?)", [
@@ -48,12 +44,6 @@ def init_db():
     conn.close()
 
 init_db()
-
-# Premium Dynamic UI Icons
-ICON_MAP = {
-    "all": "🌐", "health": "❤️", "investment": "📈", "invention": "💡", 
-    "cars": "🚗", "sports": "⚽", "games": "🎮"
-}
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -87,6 +77,20 @@ HTML_TEMPLATE = """
         }
         .nav-category-chip.active { background-color: #38bdf8; color: #000000; border-color: #38bdf8; }
 
+        /* Premium Language Switcher Button pinned to the right side of the nav bar */
+        .lang-switch-btn {
+            background-color: #38bdf8; color: #000000; border: none;
+            padding: 6px 14px; border-radius: 15px; font-weight: 800;
+            font-size: 0.78rem; cursor: pointer; margin-left: auto;
+            flex-shrink: 0; text-transform: uppercase;
+        }
+        
+        /* Support for Right-To-Left layout layout alignment updates */
+        body.rtl .lang-switch-btn { margin-left: 0; margin-right: auto; }
+        body.rtl .action-sidebar { left: 16px; right: auto; }
+        body.rtl .reel-content { width: 85%; text-align: right; }
+        body.rtl .channel-row { flex-direction: row-reverse; }
+
         .reel-container { height: 100%; width: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
         .reel-container::-webkit-scrollbar { display: none; }
 
@@ -97,7 +101,7 @@ HTML_TEMPLATE = """
         }
 
         .card-scrim { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.85) 100%); z-index: 1; }
-        .reel-content { position: relative; z-index: 10; display: flex; flex-direction: column; gap: 14px; width: 85%; }
+        .reel-content { position: relative; z-index: 10; display: flex; flex-direction: column; gap: 14px; width: 85%; text-align: left; }
         
         .channel-row { display: flex; align-items: center; gap: 8px; }
         .badge-live { background-color: #ef4444; color: white; font-size: 0.7rem; font-weight: 900; padding: 3px 9px; border-radius: 4px; text-transform: uppercase; }
@@ -114,8 +118,10 @@ HTML_TEMPLATE = """
         .story-modal { position: fixed; bottom: 0; left: 0; right: 0; height: 60%; background-color: #121216; border-radius: 24px 24px 0 0; border-top: 1px solid #2e2e38; z-index: 5000; display: none; flex-direction: column; padding: 24px; color: #ffffff; }
         .story-modal.open { display: flex; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid #2e2e38; padding-bottom: 12px; }
+        body.rtl .modal-header { flex-direction: row-reverse; }
         .btn-close-modal { background-color: #ef4444; color: white; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
         .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        body.rtl .modal-body { text-align: right; }
         .modal-title { font-size: 1.3rem; font-weight: 800; line-height: 1.4; }
         .modal-text { font-size: 1.02rem; line-height: 1.65; color: #cbd5e1; text-align: justify; }
     </style>
@@ -124,13 +130,16 @@ HTML_TEMPLATE = """
 
     <!-- Scrollable Global Category Switcher Ribbon -->
     <div class="category-scroll-nav">
-        <div class="nav-category-chip active" onclick="filterGlobalCategory('all', this)">🌐 All Streams</div>
-        <div class="nav-category-chip" onclick="filterGlobalCategory('investment', this)">📈 Investment</div>
-        <div class="nav-category-chip" onclick="filterGlobalCategory('invention', this)">💡 Invention</div>
-        <div class="nav-category-chip" onclick="filterGlobalCategory('health', this)">❤️ Health</div>
-        <div class="nav-category-chip" onclick="filterGlobalCategory('cars', this)">🚗 Cars</div>
-        <div class="nav-category-chip" onclick="filterGlobalCategory('sports', this)">⚽ Sports</div>
-        <div class="nav-category-chip" onclick="filterGlobalCategory('games', this)">🎮 Games</div>
+        <div class="nav-category-chip active" id="chip-all" onclick="filterGlobalCategory('all', this)" data-en="🌐 All Streams" data-ar="🌐 كل الموجزات">🌐 All Streams</div>
+        <div class="nav-category-chip" id="chip-investment" onclick="filterGlobalCategory('investment', this)" data-en="📈 Investment" data-ar="📈 الاستثمار">📈 Investment</div>
+        <div class="nav-category-chip" id="chip-invention" onclick="filterGlobalCategory('invention', this)" data-en="💡 Invention" data-ar="💡 الابتكارات">💡 Invention</div>
+        <div class="nav-category-chip" id="chip-health" onclick="filterGlobalCategory('health', this)" data-en="❤️ Health" data-ar="❤️ الصحة">❤️ Health</div>
+        <div class="nav-category-chip" id="chip-cars" onclick="filterGlobalCategory('cars', this)" data-en="🚗 Cars" data-ar="🚗 السيارات">🚗 Cars</div>
+        <div class="nav-category-chip" id="chip-sports" onclick="filterGlobalCategory('sports', this)" data-en="⚽ Sports" data-ar="⚽ الرياضة">⚽ Sports</div>
+        <div class="nav-category-chip" id="chip-games" onclick="filterGlobalCategory('games', this)" data-en="🎮 Games" data-ar="🎮 الألعاب">🎮 Games</div>
+        
+        <!-- Language Switcher Selector Action -->
+        <button class="lang-switch-btn" id="langBtn" onclick="toggleLanguage()">العربية</button>
     </div>
 
     <div class="reel-container" id="newsFeed">
@@ -145,24 +154,24 @@ HTML_TEMPLATE = """
             
             <div class="reel-content">
                 <div class="channel-row">
-                    <span class="badge-live">Verified</span>
+                    <span class="badge-live" data-en="Verified" data-ar="موثق">Verified</span>
                     <span class="badge-source">📡 {{ item[4] }}</span>
                 </div>
                 <h1 class="reel-headline">{{ item[1] }}</h1>
                 <p class="reel-snippet">{{ item[2] }}</p>
                 <div style="color: #38bdf8; font-weight: 700; font-size: 0.82rem; text-transform: uppercase;">
-                    Category: {{ item[3] }}
+                    <span data-en="Category" data-ar="الفئة">Category</span>: {{ item[3] }}
                 </div>
             </div>
 
             <div class="action-sidebar">
                 <div style="text-align: center;" onclick="event.stopPropagation(); alert('Saved directly to personal reader feed.')">
                     <button class="action-button">⚡</button>
-                    <div class="action-label">Save</div>
+                    <div class="action-label" data-en="Save" data-ar="حفظ">Save</div>
                 </div>
                 <div style="text-align: center;" onclick="event.stopPropagation(); alert('Broadcast share link copied.')">
                     <button class="action-button">🔗</button>
-                    <div class="action-label">Share</div>
+                    <div class="action-label" data-en="Share" data-ar="مشاركة">Share</div>
                 </div>
             </div>
         </div>
@@ -172,7 +181,7 @@ HTML_TEMPLATE = """
     <div id="storyModal" class="story-modal">
         <div class="modal-header">
             <span id="modalSourceBadge" class="badge-source" style="background-color: rgba(56,189,248,0.15); color: #38bdf8;"></span>
-            <button class="btn-close-modal" onclick="closeStoryDetails()">❌ Close</button>
+            <button class="btn-close-modal" id="modalCloseBtn" onclick="closeStoryDetails()" data-en="❌ Close" data-ar="❌ إغلاق">❌ Close</button>
         </div>
         <div class="modal-body">
             <h2 id="modalTitle" class="modal-title"></h2>
@@ -181,6 +190,28 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
+        let currentLang = 'en';
+
+        function toggleLanguage() {
+            const body = document.body;
+            const langBtn = document.getElementById('langBtn');
+            
+            if (currentLang === 'en') {
+                currentLang = 'ar';
+                body.classList.add('rtl');
+                langBtn.innerText = 'English';
+            } else {
+                currentLang = 'en';
+                body.classList.remove('rtl');
+                langBtn.innerText = 'العربية';
+            }
+
+            // Update all elements containing translatable string bindings
+            document.querySelectorAll('[data-en]').forEach(el => {
+                el.innerText = el.getAttribute('data-' + currentLang);
+            });
+        }
+
         function filterGlobalCategory(category, element) {
             document.querySelectorAll('.nav-category-chip').forEach(chip => chip.classList.remove('active'));
             element.classList.add('active');
@@ -255,12 +286,12 @@ CREATOR_PORTAL_TEMPLATE = """
             
             <label>Content Category Target</label>
             <select name="category">
-                <option value="investment">Investment</option>
-                <option value="invention">Invention</option>
-                <option value="health">Health</option>
-                <option value="cars">Cars</option>
-                <option value="sports">Sports</option>
-                <option value="games">Games</option>
+                <option value="investment">Investment / الاستثمار</option>
+                <option value="invention">Invention / الابتكارات</option>
+                <option value="health">Health / الصحة</option>
+                <option value="cars">Cars / السيارات</option>
+                <option value="sports">Sports / الرياضة</option>
+                <option value="games">Games / الألعاب</option>
             </select>
             
             <button type="submit">🚀 Deploy Live Broadcast Reel</button>
@@ -283,7 +314,6 @@ def home():
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     return response
 
-# Hidden Publisher route to test content creation
 @app.route('/agency-portal')
 def agency_portal():
     conn = sqlite3.connect(DB_FILE)
@@ -293,7 +323,6 @@ def agency_portal():
     conn.close()
     return render_template_string(CREATOR_PORTAL_TEMPLATE, agencies=agencies)
 
-# FIXED: Changed 'method' argument to plural 'methods'
 @app.route('/publish', methods=['POST'])
 def publish_story():
     title = request.form.get('title')
@@ -301,7 +330,6 @@ def publish_story():
     category = request.form.get('category')
     source_name = request.form.get('source_name')
     
-    # Generate unique premium colors dynamically based on category types
     color_schemes = {
         "investment": "linear-gradient(135deg, #111827 0%, #06b6d4 100%)",
         "invention": "linear-gradient(135deg, #0f172a 0%, #4f46e5 100%)",
