@@ -18,7 +18,6 @@ def init_db():
         )
     ''')
     
-    # Upgraded Reels table to store both English and Arabic content side-by-side
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -243,8 +242,8 @@ HTML_TEMPLATE = """
 
     <div class="reel-container" id="newsFeed">
         {% for item in reels %}
-        <!-- Card maps paired data points for instant language rendering toggles -->
         <div class="reel-card" style="background: {{ item[8] }};"
+             data-id="{{ item[0] }}"
              data-category="{{ item[5] }}"
              data-title-en="{{ item[1] }}"
              data-title-ar="{{ item[2] }}"
@@ -312,15 +311,15 @@ HTML_TEMPLATE = """
                 langBtn.innerText = 'العربية';
             }
 
-            // 1. Update UI Labels
+            // 1. Update system labels
             document.querySelectorAll('[data-en]').forEach(el => {
                 el.innerText = el.getAttribute('data-' + currentLang);
             });
 
-            // 2. Loop through all reels and flip the text nodes instantly
+            // 2. FIXED: Access data attributes via element properties to handle multi-language rendering perfectly
             document.querySelectorAll('.reel-card').forEach(card => {
-                const id = card.getAttribute('onclick').match(/\\((.*?)\\)/) ? '' : card.querySelector('.reel-headline').id.split('-')[2];
-                if(!id) return;
+                const id = card.getAttribute('data-id');
+                if (!id) return;
                 
                 const title = card.getAttribute('data-title-' + currentLang);
                 const source = card.getAttribute('data-source-' + currentLang);
